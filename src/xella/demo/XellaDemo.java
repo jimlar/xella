@@ -38,7 +38,7 @@ public class XellaDemo
 
     /** Creates new form XellaDemo */
     public XellaDemo() throws IOException {
-        this.engine = new GnutellaEngine(20, 22, 6346);
+        this.engine = new GnutellaEngine(10, 12, 6346);
 
         initComponents();
 	updateStatistics();

@@ -3,15 +3,15 @@ package xella.demo;
 
 import java.util.*;
 
-import javax.swing.table.TableModel;
+import javax.swing.table.AbstractTableModel;
 import javax.swing.event.TableModelListener;
 import javax.swing.event.TableModelEvent;
 
 import xella.net.*;
 
 
-public class ConnectionsTableModel 
-    implements TableModel, ConnectionListener
+public class ConnectionsTableModel extends AbstractTableModel
+    implements ConnectionListener
 {
     private static final String[] COLUMN_NAMES = new String[] {"Host", 
 							       "Sent", 
@@ -19,8 +19,6 @@ public class ConnectionsTableModel
 							       "Dropped",
 							       "Status"};
     
-
-    private Collection listeners = new ArrayList();
     private List connections = new ArrayList();
 
     public ConnectionsTableModel(GnutellaEngine engine) {
@@ -29,27 +27,37 @@ public class ConnectionsTableModel
 	
     /* -- this ConnectionListener interface impl --*/
 
-    public void connecting(ConnectionInfo info) {
+    public synchronized void connecting(ConnectionInfo info) {
 	connections.add(info);
-	signalListeners();
+	//fireTableDataChanged();
+	fireTableRowsInserted(connections.size() - 1, 
+			      connections.size() - 1);
+    }
+    
+    public synchronized void connected(ConnectionInfo info) {
+	int row = connections.indexOf(info);
+	fireTableRowsUpdated(row, row);
+	//fireTableDataChanged();
     }
 
-    public void connected(ConnectionInfo info) {
-	signalListeners();
+    public synchronized void statusChange(ConnectionInfo info) {
+	int row = connections.indexOf(info);
+	fireTableRowsUpdated(row, row);
+	//fireTableDataChanged();
     }
 
-    public void statusChange(ConnectionInfo info) {
-	signalListeners();	    
-    }
-
-    public void connectFailed(ConnectionInfo info) {
+    public synchronized void connectFailed(ConnectionInfo info) {
+	int row = connections.indexOf(info);
 	connections.remove(info);
-	signalListeners();
+	//fireTableDataChanged();
+	fireTableRowsDeleted(row, row);
     }
 
-    public void disconnected(ConnectionInfo info) {
+    public synchronized void disconnected(ConnectionInfo info) {
+	int row = connections.indexOf(info);
 	connections.remove(info);
-	signalListeners();
+	//fireTableDataChanged();
+	fireTableRowsDeleted(row, row);
     }
 
     public void hostIgnored(Host host) {}
@@ -58,12 +66,6 @@ public class ConnectionsTableModel
 
     /* -- the TableModel interface impl -- */
 
-    public void addTableModelListener(TableModelListener l) {
-	listeners.add(l);
-    }
-    public void removeTableModelListener(TableModelListener l) {
-	listeners.remove(l);
-    }
     public Class getColumnClass(int columnIndex) {
 	switch (columnIndex) {
 	case 1:
@@ -80,10 +82,13 @@ public class ConnectionsTableModel
     public String getColumnName(int columnIndex) {
 	return COLUMN_NAMES[columnIndex];
     }
-    public int getRowCount() {
+    public synchronized int getRowCount() {
 	return connections.size();
     }
-    public Object getValueAt(int rowIndex, int columnIndex) {
+    public synchronized Object getValueAt(int rowIndex, int columnIndex) {
+	if (rowIndex >= connections.size()) {
+	    return null;
+	}
 	ConnectionInfo info = (ConnectionInfo) connections.get(rowIndex);
 	switch(columnIndex) {
 	case 0:
@@ -98,22 +103,6 @@ public class ConnectionsTableModel
 	    return info.getStatusMessage();
 	default:
 	    return null;
-	}
-    }
-    public boolean isCellEditable(int rowIndex, int columnIndex) {
-	return false;
-    } 
-    public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-	return;
-    }
-
-    /* -- helpers -- */
-
-    private void signalListeners() {
-	Iterator iter = listeners.iterator();
-	while (iter.hasNext()) {
-	    TableModelListener listener = (TableModelListener) iter.next();
-	    listener.tableChanged(new TableModelEvent(this));
 	}
     }
 }

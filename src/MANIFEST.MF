@@ -1,2 +1,2 @@
-Main-Class: xella.demo.XellaDemo
+Main-Class: xella.demo.CommandLineDemo
 Class-Path: .

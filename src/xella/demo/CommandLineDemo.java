@@ -53,7 +53,7 @@ public class CommandLineDemo
     
     public void receivedPing(PingMessage message) {
 	numPings++;
-	showMessageCounts();
+	showStatus();
 
 	/* Pong the pings */
 	PongMessage pongMessage 
@@ -68,17 +68,17 @@ public class CommandLineDemo
 
     public void receivedPong(PongMessage message) {
 	numPongs++; 
-	showMessageCounts();
+	showStatus();
     }
 
     public void receivedPush(PushMessage message) {
 	numPushes++;
-	showMessageCounts();
+	showStatus();
     }
 
     public void receivedQuery(QueryMessage message) {
 	numQueries++; 
-	showMessageCounts();
+	showStatus();
 	
 	/* Test to reply to a query */
 	if (message.getSearchString().equals("ant")) {
@@ -98,62 +98,55 @@ public class CommandLineDemo
 
     public void receivedQueryResponse(QueryResponseMessage message) {
 	numQueryResponses++; 
-	showMessageCounts();
+	showStatus();
     }
 
-    private void showMessageCounts() {
+    private void showStatus() {
 	
-	System.out.println(numPings + " pings, " 
-			   + numPongs + " pongs, "
-			   + numPushes + " pushes, " 
-			   + numQueries + " queries, " 
-			   + numQueryResponses + " query responses");
-    }
-
-    private void showConnectionCounts() {
-
-	System.out.println(numHostsConnected + " connected, " 
-			   + numHostsDisconnected + " disconnected, " 
-			   + numConnectFailed + " con. failed, " 
-			   + numHostsConnecting + " connecting, "
-			   + numHostsIgnored + " ignored hosts, "
-			   + numFoundHosts + " found hosts");
+	System.out.print("\rmsg: " + numPings + " pi, " 
+			 + numPongs + " po, "
+			 + numPushes + " pu, " 
+			 + numQueries + " q, " 
+			 + numQueryResponses + " qr."
+			 + " con: " + numHostsConnected + " c, " 
+			 + numHostsDisconnected + " dc, " 
+			 + numConnectFailed + " cf, " 
+			 + numHostsConnecting + " cing, "
+			 + numHostsIgnored + " ih, "
+			 + numFoundHosts + " fh");
     }
 
     public synchronized void connecting(ConnectionInfo info) {
 	numHostsConnecting++;
-	showConnectionCounts();
+	showStatus();
     }
     
     public synchronized void connected(ConnectionInfo info) {
 	numHostsConnected++;
 	numHostsConnecting--;
-	showConnectionCounts();
+	showStatus();
     }
     
     public synchronized void connectFailed(ConnectionInfo info) {
 	numConnectFailed++;
 	numHostsConnecting--;
-	showConnectionCounts();
+	showStatus();
     }
     
     public synchronized void hostIgnored(Host host) {
 	numHostsIgnored++;
-	showConnectionCounts();
+	showStatus();
     }
     
     public synchronized void hostDiscovered(Host host) {
 	numFoundHosts++;
-	showConnectionCounts();
+	showStatus();
     }
     
     public synchronized void disconnected(ConnectionInfo info) {
 	numHostsDisconnected++;
 	numHostsConnected--;
-	showConnectionCounts();
+	showStatus();
     }
-
-    public synchronized void statusChange(ConnectionInfo info) {
-	//System.out.println("Status changed: " + info);
-    }
+    public synchronized void statusChange(ConnectionInfo info) {}
 }

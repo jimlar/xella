@@ -13,7 +13,7 @@ class GnutellaConnection {
     public static final String CONNECT_OK_REPLY = "GNUTELLA OK";
     
     private static final int TIMEOUT_MS = 1000 * 30;
-    private static final int SENDBUFFER_CLOSE_LEVEL = 200;
+    private static final int SENDBUFFER_CLOSE_LEVEL = 2000;
     private static final int MAX_MESSAGESIZE = 65535;
 
     private static final int STATE_NEW = 0;
@@ -119,8 +119,8 @@ class GnutellaConnection {
 	    if (sendQueue.size() >= SENDBUFFER_CLOSE_LEVEL) {
 		disconnect(new IOException("send buffer overflow"));
 		connectionInfo.setStatus("Send buffer overflow", 
-					 numMessagesReceived,
 					 numMessagesSent,
+					 numMessagesReceived,
 					 numMessagesDropped);
 
 		engine.disconnected(connectionInfo);
@@ -183,8 +183,8 @@ class GnutellaConnection {
 		finishHandshake();
 		if (isConnected()) {
 		    connectionInfo.setStatus("Connected",
-					     numMessagesReceived,
 					     numMessagesSent,
+					     numMessagesReceived,
 					     numMessagesDropped);
 		    engine.connected(connectionInfo);
 		}
@@ -216,16 +216,16 @@ class GnutellaConnection {
 	    case STATE_HANDSHAKE_STEP1:
 	    case STATE_HANDSHAKE_STEP2:
 		connectionInfo.setStatus(e.getMessage(),
-					 numMessagesReceived,
 					 numMessagesSent,
+					 numMessagesReceived,
 					 numMessagesDropped);
 		engine.connectFailed(connectionInfo);
 		break;
 
 	    default:
 		connectionInfo.setStatus(e.getMessage(),
-					 numMessagesReceived,
 					 numMessagesSent,
+					 numMessagesReceived,
 					 numMessagesDropped);
 		engine.disconnected(connectionInfo);
 		break;
@@ -258,8 +258,8 @@ class GnutellaConnection {
 	/* Connect us if we are a client connection */
 	if (isClient) {
 	    connectionInfo.setStatus("Connecting...",
-				     numMessagesReceived,
 				     numMessagesSent,
+				     numMessagesReceived,
 				     numMessagesDropped);	
 	    engine.connecting(connectionInfo);	    
 	    this.socketChannel = SocketChannel.open();
@@ -482,8 +482,8 @@ class GnutellaConnection {
 
     private void sendStatusChange(String status) {
 	connectionInfo.setStatus(status,
-				 numMessagesReceived,
 				 numMessagesSent,
+				 numMessagesReceived,
 				 numMessagesDropped);	
 	engine.statusChange(connectionInfo);
     }
