@@ -30,12 +30,15 @@ class ServerSocketManager extends Thread {
     public void run() {
 	while (!stopping) {
 	    try {		
+		System.out.println("Serversocket disabled!"); 
 		Socket socket = serverSocket.accept();
 		
 		if (!engine.getConnectionGroup().hasReachedMaxSize()) {
-		    GnutellaConnection connection = new GnutellaConnection(this.engine,
-									   socket);
-		    engine.getConnectionGroup().addConnection(connection);
+// 		    GnutellaConnection connection = new GnutellaConnection(this.engine,
+// 									   socket);
+// 		    engine.getConnectionGroup().addConnection(connection);
+		    
+
 		}
 	    } catch (IOException e) {
 		System.out.println("Exception while accepting new connection: " + e);

@@ -38,4 +38,8 @@ class ConnectionGroup {
     public synchronized boolean hasReachedMaxSize() {
 	return connections.size() >= maxSize;
     }
+
+    public synchronized int size() {
+	return connections.size();
+    }
 }

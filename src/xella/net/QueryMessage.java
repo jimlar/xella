@@ -26,6 +26,20 @@ public class QueryMessage extends Message {
 	out.write8Bit(0);
     }
 
+    public static QueryMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
+	throws IOException
+    {
+	GnutellaInputStream in = connection.getInputStream();
+
+	int minSpeed = in.read16Bit();
+	int stringSize = messageHeader.getMessageBodySize() - 3;
+	String searchString = in.readAsciiString(stringSize);
+	/* discard the null terminator */	
+	in.read8Bit();
+	
+	return new QueryMessage(connection, messageHeader, searchString, minSpeed);
+    }
+
     public String toString() {
 	return "QueryMessage: query=" + searchString + ", minSpeed=" + minSpeed;
     }

@@ -14,23 +14,32 @@ import xella.net.*;
  *
  * @author  jimmy
  */
-public class XellaDemo extends javax.swing.JFrame implements MessageListener {
+public class XellaDemo extends javax.swing.JFrame implements MessageListener, ConnectionListener {
 
     private GnutellaEngine engine;
     private QueryMessage activeQuery;
+
     private int numPings = 0;
     private int numPongs = 0;
     private int numPushes = 0;
     private int numQueries = 0;
     private int numQueryResponses = 0;
-    
+
+    private int numHostsConnecting = 0;
+    private int numHostsConnected = 0;
+    private int numConnectFailed = 0;
+    private int numHostsDisconnected = 0;
+    private int numHostsIgnored = 0;
+
+
     /** Creates new form XellaDemo */
     public XellaDemo() throws IOException {
         initComponents();
 	updateStatistics();
-        this.engine = new GnutellaEngine(8, 20, 6346);
-	engine.start();
+        this.engine = new GnutellaEngine(20, 30, 6346);
 	engine.addMessageListener(this);
+	engine.addConnectionListener(this);
+	engine.start();
 	engine.addHost("gnutellahosts.com", 6346);
 	engine.addHost("router.limewire.com", 6346);
         engine.addHost("gnutella.hostscache.com", 6346);
@@ -51,6 +60,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener {
         jScrollPane2 = new javax.swing.JScrollPane();
         searchResultsTable = new javax.swing.JTable();
         jPanel4 = new javax.swing.JPanel();
+        jPanel8 = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
         numPingsLabel = new javax.swing.JLabel();
         numPongsLabel = new javax.swing.JLabel();
@@ -59,6 +69,12 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener {
         numQueryResponsesLabel = new javax.swing.JLabel();
         numMessagesLabel = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
+        hostsConnectingLabel = new javax.swing.JLabel();
+        hostsConnectedLabel = new javax.swing.JLabel();
+        hostsConnectFailedLabel = new javax.swing.JLabel();
+        hostsDisconnectedLabel = new javax.swing.JLabel();
+        hostsIgnoredLabel = new javax.swing.JLabel();
+        hostsKnownLabel = new javax.swing.JLabel();
         jPanel6 = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
         
@@ -74,10 +90,13 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener {
         jPanel5.setLayout(new java.awt.BorderLayout(2, 2));
         
         jLabel2.setText("Search words:");
+        jLabel2.setForeground(java.awt.Color.black);
+        jLabel2.setFont(new java.awt.Font("Dialog", 0, 12));
         jPanel5.add(jLabel2, java.awt.BorderLayout.WEST);
         
         jPanel5.add(searchTextField, java.awt.BorderLayout.CENTER);
         
+        jButton3.setFont(new java.awt.Font("Dialog", 0, 12));
         jButton3.setText("Go");
         jButton3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -118,45 +137,75 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener {
         
         jTabbedPane2.addTab("Search", jPanel2);
         
-        jPanel4.setLayout(new java.awt.GridLayout(2, 2, 10, 10));
+        jPanel4.setLayout(new java.awt.BorderLayout());
+        
+        jPanel8.setLayout(new java.awt.GridLayout(2, 2, 10, 10));
         
         jPanel1.setLayout(new java.awt.GridLayout(6, 1));
         
         jPanel1.setBorder(new javax.swing.border.TitledBorder("Messages"));
         numPingsLabel.setText("Pings: 0");
-        numPingsLabel.setFont(new java.awt.Font("Dialog", 0, 10));
+        numPingsLabel.setFont(new java.awt.Font("Dialog", 0, 11));
         jPanel1.add(numPingsLabel);
         
         numPongsLabel.setText("Pongs: 0");
-        numPongsLabel.setFont(new java.awt.Font("Dialog", 0, 10));
+        numPongsLabel.setFont(new java.awt.Font("Dialog", 0, 11));
         jPanel1.add(numPongsLabel);
         
         numPushesLabel.setText("Pushes: 0");
-        numPushesLabel.setFont(new java.awt.Font("Dialog", 0, 10));
+        numPushesLabel.setFont(new java.awt.Font("Dialog", 0, 11));
         jPanel1.add(numPushesLabel);
         
         numQueriesLabel.setText("Queries: 0");
-        numQueriesLabel.setFont(new java.awt.Font("Dialog", 0, 10));
+        numQueriesLabel.setFont(new java.awt.Font("Dialog", 0, 11));
         jPanel1.add(numQueriesLabel);
         
         numQueryResponsesLabel.setText("Query reponses: 0");
-        numQueryResponsesLabel.setFont(new java.awt.Font("Dialog", 0, 10));
+        numQueryResponsesLabel.setFont(new java.awt.Font("Dialog", 0, 11));
         jPanel1.add(numQueryResponsesLabel);
         
         numMessagesLabel.setText("Total: 0");
-        numMessagesLabel.setFont(new java.awt.Font("Dialog", 0, 10));
+        numMessagesLabel.setFont(new java.awt.Font("Dialog", 0, 11));
         jPanel1.add(numMessagesLabel);
         
-        jPanel4.add(jPanel1);
+        jPanel8.add(jPanel1);
         
-        jPanel3.setBorder(new javax.swing.border.TitledBorder("Connections"));
-        jPanel4.add(jPanel3);
+        jPanel3.setLayout(new java.awt.GridLayout(6, 1));
+        
+        jPanel3.setBorder(new javax.swing.border.TitledBorder("Hosts"));
+        hostsConnectingLabel.setText("Connecting: 0");
+        hostsConnectingLabel.setFont(new java.awt.Font("Dialog", 0, 11));
+        jPanel3.add(hostsConnectingLabel);
+        
+        hostsConnectedLabel.setText("Connected: 0");
+        hostsConnectedLabel.setFont(new java.awt.Font("Dialog", 0, 11));
+        jPanel3.add(hostsConnectedLabel);
+        
+        hostsConnectFailedLabel.setText("Connect failed: 0");
+        hostsConnectFailedLabel.setFont(new java.awt.Font("Dialog", 0, 11));
+        jPanel3.add(hostsConnectFailedLabel);
+        
+        hostsDisconnectedLabel.setText("Disconnected: 0");
+        hostsDisconnectedLabel.setFont(new java.awt.Font("Dialog", 0, 11));
+        jPanel3.add(hostsDisconnectedLabel);
+        
+        hostsIgnoredLabel.setText("Ignored hosts: 0");
+        hostsIgnoredLabel.setFont(new java.awt.Font("Dialog", 0, 11));
+        jPanel3.add(hostsIgnoredLabel);
+        
+        hostsKnownLabel.setText("Known hosts: 0");
+        hostsKnownLabel.setFont(new java.awt.Font("Dialog", 0, 11));
+        jPanel3.add(hostsKnownLabel);
+        
+        jPanel8.add(jPanel3);
         
         jPanel6.setBorder(new javax.swing.border.TitledBorder("Downloads"));
-        jPanel4.add(jPanel6);
+        jPanel8.add(jPanel6);
         
         jPanel7.setBorder(new javax.swing.border.TitledBorder("Uploads"));
-        jPanel4.add(jPanel7);
+        jPanel8.add(jPanel7);
+        
+        jPanel4.add(jPanel8, java.awt.BorderLayout.NORTH);
         
         jTabbedPane2.addTab("Statistics", jPanel4);
         
@@ -200,6 +249,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener {
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTable searchResultsTable;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel8;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JLabel numPingsLabel;
     private javax.swing.JLabel numPongsLabel;
@@ -208,6 +258,12 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener {
     private javax.swing.JLabel numQueryResponsesLabel;
     private javax.swing.JLabel numMessagesLabel;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JLabel hostsConnectingLabel;
+    private javax.swing.JLabel hostsConnectedLabel;
+    private javax.swing.JLabel hostsConnectFailedLabel;
+    private javax.swing.JLabel hostsDisconnectedLabel;
+    private javax.swing.JLabel hostsIgnoredLabel;
+    private javax.swing.JLabel hostsKnownLabel;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
     // End of variables declaration//GEN-END:variables
@@ -249,12 +305,52 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener {
         } 
     }
 
-    private void updateStatistics() {	
+    private void updateStatistics() {
 	numPingsLabel.setText("Pings: " + numPings);
 	numPongsLabel.setText("Pongs: " + numPongs);
 	numPushesLabel.setText("Pushes: " + numPushes);
 	numQueriesLabel.setText("Queries: " + numQueries);
 	numQueryResponsesLabel.setText("Query reponses: " + numQueryResponses);
 	numMessagesLabel.setText("Total: " + (numPings + numPongs + numPushes + numQueries + numQueryResponses)); 
+
+	hostsConnectedLabel.setText("Connected: " + numHostsConnected);
+	hostsDisconnectedLabel.setText("Disconnected: " + numHostsDisconnected);
+	hostsConnectFailedLabel.setText("Connect failed: " + numConnectFailed);
+	hostsConnectingLabel.setText("Connecting: " + numHostsConnecting);
+	hostsIgnoredLabel.setText("Ignored hosts: " + numHostsIgnored);
     }
+
+    public synchronized void connecting(ConnectionInfo info) {
+	numHostsConnecting++;
+	updateStatistics();
+    }
+    
+    public synchronized void connected(ConnectionInfo info) {
+	numHostsConnected++;
+	numHostsConnecting--;
+	updateStatistics();
+    }
+    
+    public synchronized void connectFailed(ConnectionInfo info) {
+	numConnectFailed++;
+	numHostsConnecting--;
+	updateStatistics();
+    }
+    
+    public synchronized void hostIgnored(ConnectionInfo info) {
+	numHostsIgnored++;
+	updateStatistics();
+    }
+    
+    public synchronized void disconnected(ConnectionInfo info) {
+	numHostsDisconnected++;
+	numHostsConnected--;
+	updateStatistics();
+	System.out.println("Disconnected " + info.getHost() 
+			   + " (sent " + info.getNumMessagesSent() 
+			   + ", received " + info.getNumMessagesReceived() 
+			   + "), " + info.getStatusMessage());
+    }
+
+    public synchronized void statusChange(ConnectionInfo info) {}
 }

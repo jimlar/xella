@@ -31,6 +31,18 @@ public class PushMessage extends Message {
 	out.write16Bit(port);
     }
 
+    public static PushMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
+	throws IOException
+    {
+	GnutellaInputStream in = connection.getInputStream();
+	byte serventId[] = in.readServentIdentifier();
+	int fileIndex = in.read32Bit();
+	String host = in.readIPNumber();
+	int port = in.read16Bit();
+	
+	return new PushMessage(connection, messageHeader, serventId, host, port, fileIndex);
+    }
+
     public String toString() {
 	return "PushMessage: host=" + hostIP
 	    + ", port=" + port

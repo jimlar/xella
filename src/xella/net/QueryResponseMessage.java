@@ -50,6 +50,10 @@ public class QueryResponseMessage extends Message {
     }
 
     public boolean isResponseFor(QueryMessage message) {
+
+	if (message == null) {
+	    return false;
+	}
         byte ourDescriptor[] = getDescriptorId();
         byte otherDescriptor[] = message.getDescriptorId();
         for (int i = 0; i < ourDescriptor.length; i++) {
@@ -65,6 +69,45 @@ public class QueryResponseMessage extends Message {
 	throw new IOException("not fully implemented yet!");
     }
 
+    public static QueryResponseMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
+	throws IOException
+    {
+	GnutellaInputStream in = connection.getInputStream();
+
+	int numberOfHits = in.read8Bit();
+	int port = in.read16Bit();
+	String hostIP = in.readIPNumber();
+	int hostSpeed = in.read32Bit();	
+	List queryHits = new ArrayList();
+	
+	/*
+	 * NOTE: this needs to take into account the strange bear-share extensions
+	 *
+	 */
+	
+	/* Read all hits */
+	for (int i = 0; i < numberOfHits; i++) {
+	    int fileIndex = in.read32Bit();
+	    int fileSize = in.read32Bit();
+	    String fileName = in.readAsciiString();
+	    
+	    /* throw away extra null terminator */
+	    in.read8Bit();
+	    
+	    queryHits.add(new QueryHit(fileIndex, fileSize, fileName));
+	}
+	
+	byte serventId[] = in.readServentIdentifier();
+	
+	return new QueryResponseMessage(connection,
+					messageHeader, 
+					serventId, 
+					hostIP, 
+					port, 
+					hostSpeed, 
+					queryHits); 
+    }
+    
     public String toString() {
 	String toReturn = "QueryResponseMessage: host=" + hostIP
 	    + ", port=" + port

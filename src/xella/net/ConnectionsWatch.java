@@ -40,14 +40,16 @@ class ConnectionsWatch extends Thread implements MessageListener {
     public void run() {
 	while (!stopping) {
 
-	    if (connectionGroup.isSmallerThanMinSize()) {
+	    while (connectionGroup.isSmallerThanMinSize()) {
 		GnutellaConnection connection = getNewConnection();
 		if (connection != null) {
 		    connectionGroup.addConnection(connection);
+		} else {
+		    break;
 		}
 	    }
 	    try {
-		Thread.sleep(1000);
+		Thread.sleep(500);
 	    } catch (InterruptedException e) {}
 	}
     }
@@ -77,7 +79,12 @@ class ConnectionsWatch extends Thread implements MessageListener {
     public void receivedPong(PongMessage message) {
 	/* catch the host */
 	if (pongList.size() < 200) {
-	    pongList.add(message);
+	    String host = message.getHost();
+	    if (host.startsWith("192.168") || host.startsWith("10.")) {
+		this.engine.hostIgnored(new ConnectionInfo(host, message.getPort(), true, "Host ignored", 0, 0));
+	    } else {
+		pongList.add(message);
+	    }
 	}
     }
     

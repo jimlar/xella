@@ -13,6 +13,12 @@ public class PingMessage extends Message {
 	getHeader().send(out);
     }
 
+    public static PingMessage receive(MessageHeader header, GnutellaConnection connection) 
+	throws IOException
+    {
+	return new PingMessage(connection, header);
+    }
+
     public String toString() {
 	return "PingMessage";
     }

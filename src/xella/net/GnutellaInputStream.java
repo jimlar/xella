@@ -88,6 +88,9 @@ public class GnutellaInputStream extends InputStream {
      */
     public String readAsciiString(int size) throws IOException {
 	
+	if (size == -1) {
+	    return null;
+	}
 	byte stringBytes[] = new byte[size];
 	int bytesRead = in.read(stringBytes);
 	if (bytesRead != stringBytes.length) {

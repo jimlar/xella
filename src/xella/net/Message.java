@@ -40,7 +40,6 @@ public abstract class Message {
 
     public abstract void send(GnutellaOutputStream out) throws IOException;
 
-
     /**
      * Increase hops and decrease TTL of message
      */

@@ -141,11 +141,7 @@ public class Router {
 	while (iter.hasNext()) {
 	    GnutellaConnection connection = (GnutellaConnection) iter.next();
 	    if (!message.receivedFrom(connection)) {
-		try {
-		    connection.send(message);
-		} catch (Exception e) {
-		    connection.disconnect(e);
-		}
+		connection.send(message);
 	    }
 	}
     }
@@ -165,8 +161,8 @@ public class Router {
 	if (parentMessage == null) {
 	    message.drop();
 	    failedRouteBacks++;
-	    System.out.println("routeBack: message dropped: parent message not seen (or too late)."
-			       + " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
+	    //System.out.println("routeBack: message dropped: parent message not seen (or too late)."
+	    //+ " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
 	    return;
 	} 
 
@@ -175,20 +171,16 @@ public class Router {
 	    GnutellaConnection connection = (GnutellaConnection) iter.next();
 	    if (parentMessage.receivedFrom(connection)) {
 		/* successful route, send message */
-		try {
-		    connection.send(message);
-		    successfulRouteBacks++;
-		    return;
-		} catch (Exception e) {
-		    connection.disconnect(e);
-		}
+		connection.send(message);
+		successfulRouteBacks++;
+		return;
 	    }
 	}
 
 	/* The path was not valid, drop message */ 
 	message.drop();
 	failedRouteBacks++;
-	System.out.println("message dropped: connection of parent message no longer valid."
-			   + " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
+	//System.out.println("message dropped: connection of parent message no longer valid."
+	//		   + " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
     }
 }

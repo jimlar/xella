@@ -15,6 +15,7 @@ public class GnutellaEngine {
     private ConnectionGroup connectionGroup;
     private Router router;
     private Collection messageListeners;
+    private Collection connectionListeners;
     private ConnectionsWatch connectionsWatch;
     private int port;
     private ServerSocketManager serverSocketManager;
@@ -28,6 +29,7 @@ public class GnutellaEngine {
 	this.port = port;
 	this.router = new Router(10, 2000, this.connectionGroup);
 	this.messageListeners = new ArrayList();
+	this.connectionListeners = new ArrayList();
     }
 
     public void start() throws IOException {
@@ -54,6 +56,10 @@ public class GnutellaEngine {
 
     public void addMessageListener(MessageListener messageListener) {
 	messageListeners.add(messageListener);
+    }
+    
+    public void addConnectionListener(ConnectionListener connectionListener) {
+	connectionListeners.add(connectionListener);
     }
     
     public void send(Message message) throws IOException {
@@ -91,5 +97,53 @@ public class GnutellaEngine {
 
     ConnectionGroup getConnectionGroup() {
 	return connectionGroup;
+    }
+
+    void connecting(ConnectionInfo info) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.connecting(info);
+	}
+    }
+    
+    void connected(ConnectionInfo info) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.connected(info);
+	}
+    }
+    
+    void connectFailed(ConnectionInfo info) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.connectFailed(info);
+	}
+    }
+    
+    void hostIgnored(ConnectionInfo info) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.hostIgnored(info);
+	}
+    }
+    
+    void disconnected(ConnectionInfo info) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.disconnected(info);
+	}
+    }
+    
+    void statusChange(ConnectionInfo info) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.statusChange(info);
+	}
     }
 }

@@ -60,6 +60,26 @@ public class MessageHeader {
 	out.write32Bit(payloadLength);
     }
 
+    public static MessageHeader receive(GnutellaConnection connection) 
+	throws IOException
+    {
+	GnutellaInputStream in = connection.getInputStream();
+
+	byte descriptorId[] = new byte[16];
+	int bytesRead = in.read(descriptorId);
+ 	if (bytesRead != descriptorId.length) {
+ 	    throw new IOException("EOF before descriptor id read (read " 
+ 				  + bytesRead + " bytes)");
+ 	}
+	
+	int payloadDescriptor = in.read8Bit();
+	int ttl = in.read8Bit();
+	int hops = in.read8Bit();
+	int payloadLength = in.read32Bit();
+	    
+	return new MessageHeader(descriptorId, payloadDescriptor, ttl, hops, payloadLength);
+    }
+
     public String toString() {
 
 	String toReturn = "MessageHeader: ";

@@ -48,6 +48,17 @@ public class PongMessage extends Message {
 	out.write32Bit(kilobytesShared);
     }
 
+    public static PongMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
+	throws IOException
+    {
+	GnutellaInputStream in = connection.getInputStream();
+	int port = in.read16Bit();
+	String host = in.readIPNumber();
+	int numShared = in.read32Bit();
+	int kilobytesShared = in.read32Bit();
+	return new PongMessage(connection, messageHeader, host, port, numShared, kilobytesShared);
+    }
+
     public String toString() {
 	return "PongMessage: host=" + host 
 	    + ", port=" + port

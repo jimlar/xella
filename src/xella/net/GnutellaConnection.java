@@ -9,6 +9,7 @@ class GnutellaConnection {
 
     private static final int CONNECT_TIMEOUT = 1000 * 30;
     private static final int SENDBUFFER_CLOSE_LEVEL = 200;
+    private static final int MESSAGESIZE_CLOSE_LEVEL = 65535;
 
     private GnutellaEngine engine;
 
@@ -28,6 +29,9 @@ class GnutellaConnection {
     private List sendBuffer;
     private MessageSender messageSender;
 
+    private int numMessagesReceived = 0;
+    private int numMessagesSent = 0;
+
     /**
      * Connect as a client
      */
@@ -41,7 +45,7 @@ class GnutellaConnection {
      */
     
     GnutellaConnection(GnutellaEngine engine, Socket socket) {
-	this(engine, null, -1, socket, false);
+	this(engine, socket.getInetAddress().getHostAddress(), socket.getPort(), socket, false);
     }
 
     /**
@@ -68,13 +72,18 @@ class GnutellaConnection {
      */
     void send(Message message) {
 
-	if (sendBuffer.size() >= SENDBUFFER_CLOSE_LEVEL) {
-	    System.out.println("send buffer full, closing connection");
-	    disconnect(new IOException("send buffer overflow"));
-	    return;
-	}
-	sendBuffer.add(message);
 	synchronized (sendBuffer) {
+	    if (sendBuffer.size() >= SENDBUFFER_CLOSE_LEVEL) {
+		disconnect(new IOException("send buffer overflow"));
+		engine.disconnected(new ConnectionInfo(host,
+						       port,
+						       isClient,
+						       "Send buffer overflow", 
+						       numMessagesReceived,
+						       numMessagesSent));
+		return;
+	    }
+	    sendBuffer.add(message);
 	    sendBuffer.notifyAll();
 	}
     }
@@ -83,7 +92,18 @@ class GnutellaConnection {
 	return isClosed;
     }
     
+    GnutellaInputStream getInputStream() {
+	return this.in;
+    }
+
     private void connect() throws IOException {
+
+	engine.connecting(new ConnectionInfo(host, 
+					     port, 
+					     isClient,
+					     "Connecting",
+					     numMessagesReceived,
+					     numMessagesSent));	
 
 	if (this.socket == null) {
 	    this.socket = new Socket();
@@ -98,25 +118,24 @@ class GnutellaConnection {
 	    doServerHandshake();
 	}
 
-	this.messageDecoder = new MessageDecoder(this, this.in);
-
-	/* Always start out with a ping */
-	send(MessageFactory.getInstance().createPingMessage());
+	this.messageDecoder = new MessageDecoder(this);
 	this.isClosed = false;
 	this.messageSender = new MessageSender();
 	this.messageSender.start();
-    }
 
-    synchronized void disconnect() {
-	disconnect(null);
+	/* Start out with a ping if we are client */
+	if (isClient) {
+	    send(MessageFactory.getInstance().createPingMessage());
+	}
     }
 
     /**
      * close connection with a message
      * (this method ignores exceptions while trying to close)
      */
-    synchronized void disconnect(Exception disconnectReason) {
+    private synchronized void disconnect(Exception disconnectReason) {
 	if (!isClosed) {
+	    this.isClosed = true;
 	    this.disconnectReason = disconnectReason;
 	    try {
 		this.socket.close();
@@ -127,13 +146,28 @@ class GnutellaConnection {
     }
 
     private void receiveNextMessage() throws IOException {
-	Message message = messageDecoder.decodeNextMessage();
+	MessageHeader header = messageDecoder.decodeNextMessageHeader();
+
+	if (header.getMessageBodySize() > MESSAGESIZE_CLOSE_LEVEL) {
+	    throw new IOException("message too big (size = " + header.getMessageBodySize());
+	}
+	Message message = messageDecoder.decodeNextMessage(header);
+	numMessagesReceived++;
 	engine.registerReceivedMessage(message);
     }
 
     private void sendNextMessage() throws IOException {
-	if (sendBuffer.size() > 0) {
-	    ((Message) sendBuffer.remove(0)).send(this.out);
+	Message message = null;
+
+	synchronized (sendBuffer) {
+	    if (sendBuffer.size() > 0) {
+		message = (Message) sendBuffer.remove(0);
+	    } 
+	}
+
+	if (message != null) {
+	    message.send(this.out);
+	    numMessagesSent++;
 	} else {
 	    try {
 		synchronized(sendBuffer) {
@@ -193,8 +227,20 @@ class GnutellaConnection {
 	public void run() {
 	    try {
 		connect();
+		engine.connected(new ConnectionInfo(host, 
+						    port, 
+						    isClient,
+						    "Connected",
+						    numMessagesReceived,
+						    numMessagesSent));
 	    } catch (IOException e) {
 		disconnect(e);
+		engine.connectFailed(new ConnectionInfo(host, 
+							port,
+							isClient,
+							e.getMessage(),
+							numMessagesReceived,
+							numMessagesSent));
 	    }
 
 	    try {
@@ -202,7 +248,15 @@ class GnutellaConnection {
 		    receiveNextMessage();
 		}
 	    } catch (IOException e) {
-		disconnect(e);
+		if (!isClosed()) {
+		    disconnect(e);
+		    engine.disconnected(new ConnectionInfo(host, 
+							   port, 
+							   isClient,
+							   e.getMessage(),
+							   numMessagesReceived,
+							   numMessagesSent));
+		}
 	    }
 	}
     }
@@ -214,7 +268,15 @@ class GnutellaConnection {
 		    sendNextMessage();
 		}
 	    } catch (IOException e) {
-		disconnect(e);
+		if (!isClosed()) {
+		    disconnect(e);
+		    engine.disconnected(new ConnectionInfo(host, 
+							   port,
+							   isClient,
+							   e.getMessage(),
+							   numMessagesReceived,
+							   numMessagesSent));
+		}
 	    }
 	}
     }
