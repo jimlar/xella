@@ -37,7 +37,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     public XellaDemo() throws IOException {
         initComponents();
 	updateStatistics();
-        this.engine = new GnutellaEngine(1, 1, 6346);
+        this.engine = new GnutellaEngine(5, 10, 6346);
 	engine.addMessageListener(this);
 	engine.addConnectionListener(this);
 	engine.start();

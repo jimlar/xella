@@ -25,4 +25,18 @@ public class Host {
 	return hostname.startsWith("10.")
 	    || hostname.startsWith("192.168.");
     }
+
+    public boolean equals(Object o) {
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	Host other = (Host) o;
+	return this.hostname.equals(other.hostname)
+	    && this.port == other.port;
+    }
+
+    public int hashCode() {
+	return hostname.hashCode() ^ port;
+    }
 }

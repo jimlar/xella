@@ -32,8 +32,8 @@ public class GnutellaEngine {
 	this.connectionListeners = new ArrayList();
 	this.port = port;
 	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
-	this.hostCatcher = new HostCatcher(this);
 	this.router = new Router(10, 2000, this.connectionGroup);
+	this.hostCatcher = new HostCatcher(this);
     }
 
     public void start() throws IOException {
