@@ -38,7 +38,7 @@ public class GnutellaConnection {
 	    doServerHandshake();
 	}
 
-	this.messageDecoder = new MessageDecoder(this.in);
+	this.messageDecoder = new MessageDecoder(this);
     }
 
     public void send(Message message) throws IOException {
@@ -49,6 +49,9 @@ public class GnutellaConnection {
 	return messageDecoder.decodeNextMessage();
     }
 
+    GnutellaInputStream getInputStream() {
+	return this.in;
+    }
 
     private void doClientHandshake() 
 	throws IOException

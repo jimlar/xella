@@ -11,10 +11,12 @@ import java.util.*;
 
 class MessageDecoder {
 
+    private GnutellaConnection connection;
     private GnutellaInputStream in;
 
-    public MessageDecoder(GnutellaInputStream in) {
-	this.in = in;
+    public MessageDecoder(GnutellaConnection connection) {
+	this.connection = connection;
+	this.in = connection.getInputStream();
     }
 
     public Message decodeNextMessage() throws IOException {
@@ -24,7 +26,7 @@ class MessageDecoder {
 	switch (messageHeader.getMessageType()) {
 
 	case GnutellaConstants.PAYLOAD_PING:
-	    return new PingMessage(null, messageHeader);
+	    return new PingMessage(connection, messageHeader);
 
  	case GnutellaConstants.PAYLOAD_PONG:
  	    return decodePongMessage(messageHeader);
@@ -43,7 +45,7 @@ class MessageDecoder {
 	    for (int i = 0; i < messageHeader.getMessageBodySize(); i++) {
 		in.read();
 	    }
-	    return new UnsupportedMessage(null, messageHeader);
+	    return new UnsupportedMessage(connection, messageHeader);
 	}
     }
 
@@ -72,7 +74,7 @@ class MessageDecoder {
 	String host = in.readIPNumber();
 	int numShared = in.read32Bit();
 	int kilobytesShared = in.read32Bit();
-	return new PongMessage(null, messageHeader, host, port, numShared, kilobytesShared);
+	return new PongMessage(connection, messageHeader, host, port, numShared, kilobytesShared);
     }
 
     private PushMessage decodePushMessage(MessageHeader messageHeader)
@@ -83,7 +85,7 @@ class MessageDecoder {
 	String host = in.readIPNumber();
 	int port = in.read16Bit();
 
-	return new PushMessage(null, messageHeader, serventId, host, port, fileIndex);
+	return new PushMessage(connection, messageHeader, serventId, host, port, fileIndex);
     }
 
     private QueryMessage decodeQueryMessage(MessageHeader messageHeader)
@@ -97,7 +99,7 @@ class MessageDecoder {
 	/* discard the null terminator */	
 	in.read8Bit();
 	
-	return new QueryMessage(null, messageHeader, searchString, minSpeed);
+	return new QueryMessage(connection, messageHeader, searchString, minSpeed);
     }
 
     private QueryResponseMessage decodeQueryResponseMessage(MessageHeader messageHeader)
@@ -128,7 +130,7 @@ class MessageDecoder {
 
 	byte serventId[] = in.readServentIdentifier();
 
-	return new QueryResponseMessage(null,
+	return new QueryResponseMessage(connection,
 					messageHeader, 
 					serventId, 
 					hostIP, 
