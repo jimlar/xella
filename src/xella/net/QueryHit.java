@@ -1,5 +1,5 @@
 
-package xella.protocol;
+package xella.net;
 
 
 public class QueryHit {

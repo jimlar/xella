@@ -1,5 +1,5 @@
 
-package xella.protocol;
+package xella.net;
 
 import java.util.*;
 

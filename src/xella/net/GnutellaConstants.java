@@ -1,6 +1,6 @@
 
 
-package xella.protocol;
+package xella.net;
 
 /**
  * This class contains Gnutella protocol constants

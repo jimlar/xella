@@ -4,7 +4,8 @@ package xella;
 import java.io.*;
 import java.net.*;
 
-import xella.protocol.*;
+import xella.net.*;
+import xella.net.messages.*;
 
 /**
  * The main class of xella
