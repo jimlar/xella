@@ -9,8 +9,8 @@ public class UnsupportedMessage extends Message {
 	super(receivedFrom, header);
     }
     
-    public void send(GnutellaOutputStream out) throws IOException {
-	throw new IOException("cant send unsupported messages!");
+    public ByteBuffer getByteBuffer() {
+	throw new RuntimeException("cant send unsupported messages!");
     }
 
     public static UnsupportedMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 

@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public abstract class Message {
 
@@ -38,7 +39,7 @@ public abstract class Message {
 	}
     }
 
-    public abstract void send(GnutellaOutputStream out) throws IOException;
+    public abstract ByteBuffer getByteBuffer();
 
     /**
      * Increase hops and decrease TTL of message

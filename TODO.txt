@@ -3,6 +3,8 @@ Things to do:
 -------------
 - Start using the async-i/o
   - learn the async i/o api
+  - GnutellaConnection in progress
+    - need timeouts
 
 - Implement download/upload/push
 - Checkout the "routeBack" method, I think it's broken (or too small caches)

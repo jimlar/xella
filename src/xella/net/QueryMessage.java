@@ -17,13 +17,13 @@ public class QueryMessage extends Message {
 	this.minSpeed = minSpeed;
     }
     
-    public void send(GnutellaOutputStream out) throws IOException {
-	getHeader().send(out);
-	out.write16Bit(minSpeed);
-	out.writeAsciiString(searchString);
-	
-	/* null terminate search string */
-	out.write8Bit(0);
+    public ByteBuffer getByteBuffer() {
+	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + MessageHeader.getMessageBodySize());
+	buffer.put(getHeader().getByteBuffer());
+	buffer.put(ByteEncoder.encode16Bit(minSpeed));
+	buffer.put(ByteEncoder.encodeAsciiString(searchString));
+	buffer.put(ByteEncoder.encode8Bit(0));
+	return buffer;
     }
 
     public static QueryMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 

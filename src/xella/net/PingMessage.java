@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class PingMessage extends Message {
 
@@ -9,8 +10,8 @@ public class PingMessage extends Message {
 	super(receivedFrom, header);
     }
     
-    public void send(GnutellaOutputStream out) throws IOException {
-	getHeader().send(out);
+    public ByteBuffer getByteBuffer() {
+	return getHeader().getByteBuffer();
     }
 
     public static PingMessage receive(MessageHeader header, GnutellaConnection connection) 

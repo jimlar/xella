@@ -2,8 +2,11 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class MessageHeader {
+
+    public static final int SIZE = 23;
 
     private byte descriptorId[];
     private int payloadDescriptor;
@@ -52,14 +55,16 @@ public class MessageHeader {
 	ttl--;
     }
     
-    public void send(GnutellaOutputStream out) throws IOException {
-	out.write(descriptorId);
-	out.write8Bit(payloadDescriptor);
-	out.write8Bit(ttl);
-	out.write8Bit(hops);
-	out.write32Bit(payloadLength);
+    public ByteBuffer getByteBuffer() {	
+	ByteBuffer buf = ByteBuffer.allocate(SIZE);
+	buf.put(descriptorId);
+	buf.put(ByteEncoder.encode8Bit(payloadDescriptor));
+	buf.put(ByteEncoder.encode8Bit(ttl));
+	buf.put(ByteEncoder.encode8Bit(hops));
+	buf.put(ByteEncoder.encode32Bit(payloadLength));
+	return buf;
     }
-
+    
     public static MessageHeader receive(GnutellaConnection connection) 
 	throws IOException
     {

@@ -2,6 +2,8 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.*;
+import java.nio.channels.*;
 import java.net.*;
 import java.util.*;
 
@@ -11,14 +13,20 @@ class GnutellaConnection {
     private static final int SENDBUFFER_CLOSE_LEVEL = 200;
     private static final int MESSAGESIZE_CLOSE_LEVEL = 65535;
 
+    private static final int STATE_NEW = 0;
+    private static final int STATE_CONNECTING = 1;
+    private static final int STATE_HANDSHAKE_STEP1 = 2;
+    private static final int STATE_HANDSHAKE_STEP2 = 3;
+    private static final int STATE_CONNECTED_RECEIVING_HEADER = 4;
+    private static final int STATE_CONNECTED_RECEIVING_BODY = 5;
+    private static final int STATE_CLOSED = 6;
+
     private GnutellaEngine engine;
 
     private String host;
     private int port;
-    private Socket socket;
+    private SocketChannel socketChannel;
     private boolean isClient;
-    private GnutellaOutputStream out;
-    private GnutellaInputStream in;
 
     private MessageDecoder messageDecoder;
     private MessageReader reader;
@@ -32,6 +40,10 @@ class GnutellaConnection {
     private int numMessagesReceived = 0;
     private int numMessagesSent = 0;
 
+    private int connectionState = STATE_NEW;
+
+    private ByteBuffer currentInputBuffer;
+
     /**
      * Connect as a client
      */
@@ -40,31 +52,36 @@ class GnutellaConnection {
     }
 
     /**
-     * Act as a server with the supplied socket
-     * (probably retrieved from a ServerSocket.accept())
+     * Act as a server with the supplied socketChannel
+     * (probably retrieved from a ServerSocketChannel.accept())
      */
     
-    GnutellaConnection(GnutellaEngine engine, Socket socket) {
-	this(engine, socket.getInetAddress().getHostAddress(), socket.getPort(), socket, false);
+    GnutellaConnection(GnutellaEngine engine, SocketChannel socketChannel) {
+	this(engine, 
+	     socketChannel.socket().getInetAddress().getHostAddress(), 
+	     socketChannel.socket().getPort(), 
+	     socket, 
+	     false);
     }
 
     /**
      * If socket param is null then host and port is used to open a client socket
      */
 
-    private GnutellaConnection(GnutellaEngine engine, String host, int port, Socket socket, boolean isClient) {
+    private GnutellaConnection(GnutellaEngine engine, String host, int port, SocketChannel socketChannel, boolean isClient) {
 	if (isClient == false && socket == null) {
-	    throw new IllegalArgumentException("need socket to operate in non client mode");
+	    throw new IllegalArgumentException("need socketChannel to operate in non client mode");
 	}
 
 	this.engine = engine;
 	this.host = host;
 	this.port = port;
-	this.socket = socket;
+	this.socketChannel = socketChannel;
 	this.isClient = isClient;
 	this.sendBuffer = Collections.synchronizedList(new ArrayList());
-	reader = new MessageReader();
-	reader.start();
+
+	//reader = new MessageReader();
+	//reader.start();
     }
 
     /**
@@ -83,20 +100,56 @@ class GnutellaConnection {
 						       numMessagesSent));
 		return;
 	    }
-	    sendBuffer.add(message);
-	    sendBuffer.notifyAll();
+	    
+	    sendBuffer.add(message.getByteBuffer());
 	}
     }
 
     boolean isClosed() {
 	return isClosed;
     }
-    
-    GnutellaInputStream getInputStream() {
-	return this.in;
+
+    boolean isConnected() {
+	return connectionState == STATE_CONNECTED_RECEIVING_HEADER;
     }
 
-    private void connect() throws IOException {
+    /**
+     * Run the connection 
+     * has to be called periodically to initiate the connections
+     * asychronous tasks
+     */
+    void pumpConnection() throws IOException {
+	
+	switch (connectionState) {
+
+	case STATE_NEW:
+	    startConnect();
+	    break;
+
+	case STATE_CONNECTING:
+	    finishConnect();
+	    break;
+
+	case STATE_HANDSHAKE_STEP1:
+	    startHandshake();
+	    break;
+
+	case STATE_HANDSHAKE_STEP2:
+	    finishHandshake();
+	    break;
+
+	case STATE_CONNECTED:
+	    /* check for sent/received messages */
+	    /* Initiate delivery of next */
+	    break;
+
+	case STATE_CLOSED:
+	    break;
+	}
+    }
+
+    
+    private void startConnect() throws IOException {
 
 	engine.connecting(new ConnectionInfo(host, 
 					     port, 
@@ -105,29 +158,107 @@ class GnutellaConnection {
 					     numMessagesReceived,
 					     numMessagesSent));	
 
-	if (this.socket == null) {
-	    this.socket = new Socket();
-	    this.socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT);
-	}
-	this.out = new GnutellaOutputStream(this.socket.getOutputStream());
-	this.in = new GnutellaInputStream(this.socket.getInputStream());
-	
-	if (isClient) {
-	    doClientHandshake();
-	} else {
-	    doServerHandshake();
+	if (this.socketChannel == null) {
+	    this.socketChannel = SocketChannel.open();
+	    this.socketChannel.socket().setSoTimeout(CONNECT_TIMEOUT);
+	    this.socketChannel.connect(new InetSocketAddress(host, port));
 	}
 
-	this.messageDecoder = new MessageDecoder(this);
-	this.isClosed = false;
-	this.messageSender = new MessageSender();
-	this.messageSender.start();
+	connectionState = STATE_CONNECTING;
+    }
 
-	/* Start out with a ping if we are client */
-	if (isClient) {
-	    send(MessageFactory.getInstance().createPingMessage());
+    private void finishConnect() throws IOException {
+	boolean done = this.socketChannel.finishConnect();
+	if (done) {
+	    connectionState = STATE_HANSHAKE1;
+	    currentByteBuffer = null;
 	}
     }
+
+    private void startHandshake() throws IOException {
+	
+	boolean result;
+	if (isClient) {
+	    result = startClientHandshake();
+	} else {
+	    result = startServerHandshake();
+	}
+	
+	if (result) {
+	    connectionState = STATE_HANDSHAKE_STEP2;
+	}
+    }
+    
+    private void finishHandshake() throws IOException {
+
+	boolean result;
+	if (isClient) {
+	    result = finishClientHandshake();
+	} else {
+	    result = finishServerHandshake();
+	}
+
+	if (result) {
+	    this.messageDecoder = new MessageDecoder(this);
+	    this.isClosed = false;
+	    this.messageSender = new MessageSender();
+	    this.messageSender.start();
+	    
+	    /* Start out with a ping if we are client */
+	    if (isClient) {
+		send(MessageFactory.getInstance().createPingMessage());
+	    }
+
+	    connectionState = STATE_CONNECTED_RECEIVING_HEADER;
+	}
+    }
+
+    private boolean startClientHandshake() 
+	throws IOException
+    {
+	/* Send connect string and initiate readback */
+	ByteBuffer buffer = ByteBuffer.allocate(GnutellaConstants.CONNECT_MSG.length() + 2);
+	buffer.put(ByteEncoder.encodeAsciiString(GnutellaConstants.CONNECT_MSG + "\n\n"));
+	socketChannel.write(buffer);
+	currentInputBuffer = ByteBuffer.allocate(GnutellaConstants.CONNECT_OK_REPLY + 2);
+	socketChannel.read(currentInputBuffer);
+	return true;
+    }
+    
+    private boolean finishClientHandshake() 
+	throws IOException
+    {
+	/* Has the whole reply arrived? */
+	if (!currentInputBuffer.hasRemaining()) {
+	    
+	    byte strBytes[] = new byte[currentInputBuffer.capacity()];
+	    String reply = ByteDecoder.decodeAsciiString(strBytes);
+	    
+	    if (!reply.equalsIgnoreCase(GnutellaConstants.CONNECT_OK_REPLY)) {
+		throw new IOException("hanshaking error (reply was '" + reply + "')");
+	    }
+	    return true;
+	}
+	return false;
+    }
+    
+    private void doServerHandshake() 
+	throws IOException
+    {
+	/* read client connect string */
+	String connectString = readAsciiLine();
+	readAsciiLine();
+	
+	if (!connectString.equals(GnutellaConstants.CONNECT_MSG)) {
+	    throw new IOException("invalid connect string " + connectString);
+	}
+
+	/* Here controls should be made for access and stuff like that */
+
+	/* Send connect reply string */
+	this.out.write((GnutellaConstants.CONNECT_OK_REPLY + "\n\n").getBytes("ascii"));
+    }
+
 
     /**
      * close connection with a message
@@ -138,7 +269,7 @@ class GnutellaConnection {
 	    this.isClosed = true;
 	    this.disconnectReason = disconnectReason;
 	    try {
-		this.socket.close();
+		this.socketChannel.close();
 	    } catch (Exception e) {}
 	    engine.getConnectionGroup().removeConnection(this);
 	    this.isClosed = true;
@@ -177,38 +308,6 @@ class GnutellaConnection {
 	}
     }
 
-    private void doClientHandshake() 
-	throws IOException
-    {
-	/* Send connect string */
-	this.out.write((GnutellaConstants.CONNECT_MSG + "\n\n").getBytes("ascii"));
-	
-	/* Read the connect reply string */
-	String reply = readAsciiLine();
-	readAsciiLine();
-	
-	if (!reply.equalsIgnoreCase(GnutellaConstants.CONNECT_OK_REPLY)) {
-	    throw new IOException("hanshaking error (reply was '" + reply + "')");
-	}	
-    }
-
-    private void doServerHandshake() 
-	throws IOException
-    {
-	/* read client connect string */
-	String connectString = readAsciiLine();
-	readAsciiLine();
-
-	if (!connectString.equals(GnutellaConstants.CONNECT_MSG)) {
-	    throw new IOException("invalid connect string " + connectString);
-	}
-
-	/* Here controls should be made for access and stuff like that */
-
-	/* Send connect reply string */
-	this.out.write((GnutellaConstants.CONNECT_OK_REPLY + "\n\n").getBytes("ascii"));
-    }
-
     private String readAsciiLine() 
 	throws IOException
     {
@@ -223,61 +322,63 @@ class GnutellaConnection {
 	return buffer.toString();
     }
 
-    private class MessageReader extends Thread {	
-	public void run() {
-	    try {
-		connect();
-		engine.connected(new ConnectionInfo(host, 
-						    port, 
-						    isClient,
-						    "Connected",
-						    numMessagesReceived,
-						    numMessagesSent));
-	    } catch (IOException e) {
-		disconnect(e);
-		engine.connectFailed(new ConnectionInfo(host, 
-							port,
-							isClient,
-							e.getMessage(),
-							numMessagesReceived,
-							numMessagesSent));
-	    }
 
-	    try {
-		while (!isClosed()) {
-		    receiveNextMessage();
-		}
-	    } catch (IOException e) {
-		if (!isClosed()) {
-		    disconnect(e);
-		    engine.disconnected(new ConnectionInfo(host, 
-							   port, 
-							   isClient,
-							   e.getMessage(),
-							   numMessagesReceived,
-							   numMessagesSent));
-		}
-	    }
-	}
-    }
 
-    private class MessageSender extends Thread {	
-	public void run() {
-	    try {
-		while (!isClosed()) {
-		    sendNextMessage();
-		}
-	    } catch (IOException e) {
-		if (!isClosed()) {
-		    disconnect(e);
-		    engine.disconnected(new ConnectionInfo(host, 
-							   port,
-							   isClient,
-							   e.getMessage(),
-							   numMessagesReceived,
-							   numMessagesSent));
-		}
-	    }
-	}
-    }
+//     private class MessageReader extends Thread {	
+// 	public void run() {
+// 	    try {
+// 		connect();
+// 		engine.connected(new ConnectionInfo(host, 
+// 						    port, 
+// 						    isClient,
+// 						    "Connected",
+// 						    numMessagesReceived,
+// 						    numMessagesSent));
+// 	    } catch (IOException e) {
+// 		disconnect(e);
+// 		engine.connectFailed(new ConnectionInfo(host, 
+// 							port,
+// 							isClient,
+// 							e.getMessage(),
+// 							numMessagesReceived,
+// 							numMessagesSent));
+// 	    }
+
+// 	    try {
+// 		while (!isClosed()) {
+// 		    receiveNextMessage();
+// 		}
+// 	    } catch (IOException e) {
+// 		if (!isClosed()) {
+// 		    disconnect(e);
+// 		    engine.disconnected(new ConnectionInfo(host, 
+// 							   port, 
+// 							   isClient,
+// 							   e.getMessage(),
+// 							   numMessagesReceived,
+// 							   numMessagesSent));
+// 		}
+// 	    }
+// 	}
+//     }
+
+//     private class MessageSender extends Thread {	
+// 	public void run() {
+// 	    try {
+// 		while (!isClosed()) {
+// 		    sendNextMessage();
+// 		}
+// 	    } catch (IOException e) {
+// 		if (!isClosed()) {
+// 		    disconnect(e);
+// 		    engine.disconnected(new ConnectionInfo(host, 
+// 							   port,
+// 							   isClient,
+// 							   e.getMessage(),
+// 							   numMessagesReceived,
+// 							   numMessagesSent));
+// 		}
+// 	    }
+// 	}
+//     }
 }

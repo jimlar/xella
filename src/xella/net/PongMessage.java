@@ -40,12 +40,14 @@ public class PongMessage extends Message {
 	return kilobytesShared;
     }
 
-    public void send(GnutellaOutputStream out) throws IOException {
-	getHeader().send(out);
-	out.write16Bit(port);
-	out.writeIPNumber(host);
-	out.write32Bit(numShared);
-	out.write32Bit(kilobytesShared);
+    public ByteBuffer getByteBuffer() {
+	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + MessageHeader.getMessageBodySize());
+	buffer.put(getHeader().getByteBuffer());
+	buffer.put(ByteEncoder.encode16Bit(port));
+	buffer.put(ByteEncoder.encodeIPNumber(host));
+	buffer.put(ByteEncoder.encode32Bit(numShared));
+	buffer.put(ByteEncoder.encode32Bit(kilobytesShared));
+	return buffer;
     }
 
     public static PongMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 

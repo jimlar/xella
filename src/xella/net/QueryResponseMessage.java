@@ -64,11 +64,12 @@ public class QueryResponseMessage extends Message {
         return true;
     }
     
-    public void send(GnutellaOutputStream out) throws IOException {
-	getHeader().send(out);
-	throw new IOException("not fully implemented yet!");
+    public ByteBuffer getByteBuffer() {
+	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + MessageHeader.getMessageBodySize());
+	buffer.put(getHeader().getByteBuffer());
+	throw new RuntimeException("not implemented yet!");
     }
-
+    
     public static QueryResponseMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
 	throws IOException
     {
