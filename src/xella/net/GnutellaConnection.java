@@ -105,7 +105,7 @@ class GnutellaConnection {
 	this.messageSender.start();
     }
 
-    void disconnect() {
+    synchronized void disconnect() {
 	disconnect(null);
     }
 
@@ -113,7 +113,7 @@ class GnutellaConnection {
      * close connection with a message
      * (this method ignores exceptions while trying to close)
      */
-    void disconnect(Exception disconnectReason) {
+    synchronized void disconnect(Exception disconnectReason) {
 	if (!isClosed) {
 	    this.disconnectReason = disconnectReason;
 	    try {

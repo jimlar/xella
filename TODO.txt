@@ -1,6 +1,10 @@
 
-
 Things to do:
 -------------
 - Start using the async-i/o
+  - learn the async i/o api
+
 - Implement download/upload/push
+- Checkout the "routeBack" method, I think it's broken (or too small caches)
+
+- Store statistics about dropped messages

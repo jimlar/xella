@@ -26,7 +26,7 @@ public class GnutellaEngine {
     public GnutellaEngine(int minConnections, int maxConnections, int port) {
 	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
 	this.port = port;
-	this.router = new Router(10, 1000, this.connectionGroup);
+	this.router = new Router(10, 2000, this.connectionGroup);
 	this.messageListeners = new ArrayList();
     }
 

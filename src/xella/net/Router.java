@@ -27,6 +27,9 @@ public class Router {
     /** Cache to remember query response routes */
     private MessageCache queryResponseCache;
 
+    private int successfulRouteBacks;
+    private int failedRouteBacks;
+
     /**
      * Create a new router
      * @param ttlDropLimit messages with ttl higher than this will be dropped
@@ -161,7 +164,9 @@ public class Router {
 	Message parentMessage = cache.getByDescriptorId(message.getDescriptorId());
 	if (parentMessage == null) {
 	    message.drop();
-	    System.out.println("message dropped: parent message not seen (or too late)");
+	    failedRouteBacks++;
+	    System.out.println("routeBack: message dropped: parent message not seen (or too late)."
+			       + " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
 	    return;
 	} 
 
@@ -172,15 +177,18 @@ public class Router {
 		/* successful route, send message */
 		try {
 		    connection.send(message);
+		    successfulRouteBacks++;
+		    return;
 		} catch (Exception e) {
 		    connection.disconnect(e);
 		}
-		return;
 	    }
 	}
 
 	/* The path was not valid, drop message */ 
 	message.drop();
-	System.out.println("message dropped: connection of parent message no longer valid");
+	failedRouteBacks++;
+	System.out.println("message dropped: connection of parent message no longer valid."
+			   + " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
     }
 }

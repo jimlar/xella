@@ -24,8 +24,8 @@ class ConnectionsWatch extends Thread implements MessageListener {
 	this.engine = engine;
 	this.connectionGroup = connectionGroup;
 	this.stopping = false;
-	this.pongList = new ArrayList();
-	this.hosts = new ArrayList();
+	this.pongList = Collections.synchronizedList(new ArrayList());
+	this.hosts = Collections.synchronizedList(new ArrayList());
 	this.start();
     }
     
