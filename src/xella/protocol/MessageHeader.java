@@ -31,19 +31,31 @@ public class MessageHeader {
 	return payloadDescriptor;
     }
 
+    public int getHops() {
+	return hops;
+    }
+
     public String toString() {
 
-	String toReturn = "MessageHeader: id=[";
-	
-	for (int i = 0; i < descriptorId.length; i++) {
-	    if (i == descriptorId.length - 1) {
-		toReturn += byteToHex(descriptorId[i]) + "]";
-	    } else {
-		toReturn += byteToHex(descriptorId[i]) + ",";
+	String toReturn = "MessageHeader: ";
+
+	boolean showId = false;
+
+	if (showId) {
+	    toReturn += "id=[";
+	    
+	    for (int i = 0; i < descriptorId.length; i++) {
+		if (i == descriptorId.length - 1) {
+		    toReturn += byteToHex(descriptorId[i]) + "]";
+		} else {
+		    toReturn += byteToHex(descriptorId[i]) + ",";
+		}
 	    }
+	    
+	    toReturn += ", ";
 	}
 
-	toReturn += ", payload=" + byteToHex(payloadDescriptor)
+	toReturn += "payload=" + byteToHex(payloadDescriptor)
 	    + ", ttl=" + ttl
 	    + ", hops=" + hops
 	    + ", length=" + payloadLength;

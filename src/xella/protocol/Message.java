@@ -10,7 +10,11 @@ public class Message {
 	this.header = header;
     }
 
-    public MessageHeader getHeader() {
+    public int getHops() {
+	return header.getHops();
+    }
+
+    protected MessageHeader getHeader() {
 	return this.header;
     }
 

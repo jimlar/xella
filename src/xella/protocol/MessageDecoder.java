@@ -39,7 +39,7 @@ class MessageDecoder {
 	    return decodeQueryResponseMessage(messageHeader);
 
 	default:
-	    /* unknown message type, just ignore the body */
+	    /* unknown message type, just read past the body */
 	    for (int i = 0; i < messageHeader.getMessageBodySize(); i++) {
 		in.read();
 	    }
@@ -97,6 +97,11 @@ class MessageDecoder {
 	String hostIP = readIPNumber();
 	int hostSpeed = read32Bit();	
 	List queryHits = new ArrayList();
+
+	/*
+	 * NOTE: this needs to take into account the strange bear-share extensions
+	 *
+	 */
 
 	/* Read all hits */
 	for (int i = 0; i < numberOfHits; i++) {

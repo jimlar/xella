@@ -10,6 +10,9 @@ public class GnutellaConnection {
     private OutputStream out;
     private InputStream in;
 
+    private MessageGenerator messageGenerator;
+    private MessageDecoder messageDecoder;
+
     public GnutellaConnection(String host, int port) 
 	throws IOException
     {
@@ -35,14 +38,32 @@ public class GnutellaConnection {
 	} else {
 	    doServerHandshake();
 	}
+
+	this.messageGenerator = new MessageGenerator(this.out);
+	this.messageDecoder = new MessageDecoder(this.in);
     }
 
     public void sendPing() throws IOException {
-	MessageGenerator.sendPing(out);
+	messageGenerator.sendPing();
     }
 
+    public void sendPong(String hostIP, 
+			 int port, 
+			 int numShared, 
+			 int kilobytesShared) 
+	throws IOException 
+    {
+	messageGenerator.sendPong(hostIP, port, numShared, kilobytesShared);
+    }
+    
+    public void sendQuery(int minSpeed, String searchString)
+	throws IOException 
+    {
+	messageGenerator.sendQuery(minSpeed, searchString);	
+    }
+    
     public Message getNextMessage() throws IOException {
-	return MessageDecoder.decodeMessage(this.in);
+	return messageDecoder.decodeNextMessage();
     }
 
     private void doClientHandshake() 

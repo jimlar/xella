@@ -3,6 +3,7 @@
 package xella.protocol;
 
 import java.io.*;
+import java.util.*;
 
 /**
  * This class can generate Gnutella packets
@@ -10,53 +11,72 @@ import java.io.*;
  */
 
 class MessageGenerator {
+    
+    private OutputStream out;
 
-    public static void sendPing(OutputStream out) throws IOException {
-	sendDescriptorHeader(out, GnutellaConstants.PAYLOAD_PING, 7, 0, 0);
+    public MessageGenerator(OutputStream out) {
+	this.out = out;
     }
 
-    public static void sendPong(OutputStream out) throws IOException {
+    public void sendPing() throws IOException {
+	sendDescriptorHeader(GnutellaConstants.PAYLOAD_PING, 
+			     GnutellaConstants.TTL, 
+			     0, 
+			     0);
     }
 
-    public static void sendQuery(OutputStream out) throws IOException {
+    public void sendPong(String hostIP, 
+			 int port, 
+			 int numShared, 
+			 int kilobytesShared) 
+	throws IOException 
+    {
+	sendDescriptorHeader(GnutellaConstants.PAYLOAD_PONG, 
+			     GnutellaConstants.TTL, 
+			     0, 
+			     GnutellaConstants.PONG_BODY_LENGTH);	
+    
+	write16Bit(port);
+	writeIPNumber(hostIP);
+	write32Bit(numShared);
+	write32Bit(kilobytesShared);
     }
 
-    public static void sendQueryHit(OutputStream out) throws IOException {
+    public void sendQuery(int minSpeed, String searchString) 
+	throws IOException 
+    {
+	/* minspeed is 16 bit and the string is null terminated */
+	int size = 2 + searchString.length() + 1;
+
+	sendDescriptorHeader(GnutellaConstants.PAYLOAD_QUERY, 
+			     GnutellaConstants.TTL, 
+			     0, 
+			     size);	
+	write16Bit(minSpeed);
+	writeAsciiString(searchString);
+
+	/* null terminate search string */
+	write8Bit(0);
     }
 
-    public static void sendPush(OutputStream out) throws IOException {
+    public void sendQueryHit() throws IOException {
     }
 
-    private static void sendDescriptorHeader(OutputStream out,
-					     int          payloadDescriptor,
-					     int          ttl,
-					     int          hops,
-					     int          payloadLength) 
+    public void sendPush() throws IOException {
+    }
+
+    private void sendDescriptorHeader(int payloadDescriptor,
+				      int ttl,
+				      int hops,
+				      int payloadLength) 
 	throws IOException
     {	
-	byte buffer[] = new byte[GnutellaConstants.DESCRIPTOR_HEADER_LENGTH];
-	
-	/* 
-	 * 0 - 15  = descriptor id 
-	 * 16      = payload descriptor (type)
-	 * 17      = ttl
-	 * 18      = hops
-	 * 19 - 22 = payload length
-	 */
+	out.write(getDescriptorId());
 
-	System.arraycopy(getDescriptorId(), 0, buffer, 0, 16);
-
-	buffer[16] = (byte) payloadDescriptor;
-	buffer[17] = (byte) ttl;
-	buffer[18] = (byte) hops;
-	
-	/* Little endian */
-	buffer[19] = (byte) (payloadLength); 
-	buffer[20] = (byte) (payloadLength >> 8);
-	buffer[21] = (byte) (payloadLength >> 16);
-	buffer[22] = (byte) (payloadLength >> 24);
-
-	out.write(buffer);
+	write8Bit(payloadDescriptor);
+	write8Bit(ttl);
+	write8Bit(hops);
+	write32Bit(payloadLength);
     }
 
     /**
@@ -67,7 +87,7 @@ class MessageGenerator {
      *
      */
 
-    private static byte[] getDescriptorId() {
+    private byte[] getDescriptorId() {
 	String vmId = (new java.rmi.dgc.VMID()).toString();
 	byte toReturn[] = new byte[16];
 	
@@ -84,5 +104,49 @@ class MessageGenerator {
 	}
 
 	return toReturn;
+    }
+
+
+    private void write8Bit(int value) throws IOException {
+	out.write((byte) value);
+    }
+
+    private void write16Bit(int value) throws IOException {
+	value = (int)(short) value;
+
+	/* Little endian */
+	out.write((byte) (value)); 
+	out.write((byte) (value >> 8));
+    }
+
+    private void write32Bit(int value) throws IOException {
+	/* Little endian */
+	out.write((byte) (value)); 
+	out.write((byte) (value >> 8));
+	out.write((byte) (value >> 16));
+	out.write((byte) (value >> 24));
+    }
+
+    private void writeIPNumber(String ipNumber) throws IOException {
+	StringTokenizer st = new StringTokenizer(ipNumber, ".");
+	if (st.countTokens() != 4) {
+	    throw new IOException("ip number must be on dotted decimal form (got " 
+				  + ipNumber + ")");
+	}
+	
+	while (st.hasMoreTokens()) {
+	    String b = st.nextToken();
+	    try {
+		write8Bit(Integer.parseInt(b));
+	    } catch (NumberFormatException e) {
+		throw new IOException("ip number must be on dotted decimal form (got " 
+				      + ipNumber + ")");
+	    }
+	}
+    }
+
+    private void writeAsciiString(String str) throws IOException {
+	byte bytes[] = str.getBytes("ascii");
+	out.write(bytes);
     }
 }

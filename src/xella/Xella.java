@@ -24,8 +24,10 @@ public class Xella {
 	Mongo mongo = new Mongo(con);
 
 	while (true) {
+
+	    con.sendQuery(0, "cult");
 	    con.sendPing();
-	    Thread.sleep(1000);
+	    Thread.sleep(10000);
 	}
     }
 
@@ -42,6 +44,19 @@ public class Xella {
 		while (true) {
 		    Message m = con.getNextMessage();
 		    System.out.println(m.toString());	    
+
+		    if (m instanceof PingMessage) {
+			System.out.println("Got ping, sending pongs...");
+			con.sendPong("192.168.1.31", 6346, 12, 14);
+			con.sendPong("197.168.1.32", 6346, 12, 14);
+			con.sendPong("197.168.1.33", 6346, 12, 14);
+			con.sendPong("197.168.1.34", 6346, 12, 14);
+			con.sendPong("197.168.1.35", 6346, 12, 14);
+			con.sendPong("197.168.1.36", 6346, 12, 14);
+			con.sendPong("197.168.1.37", 6346, 12, 14);
+			con.sendPong("197.168.1.38", 6346, 12, 14);
+			con.sendPong("197.168.1.39", 6346, 12, 14);
+		    }
 		}	
 	    } catch (Exception e) {
 		e.printStackTrace();
