@@ -32,6 +32,7 @@ public class PushMessage extends Message {
 	buffer.put(ByteEncoder.encode32Bit(fileIndex));
 	buffer.put(ByteEncoder.encodeIPNumber(hostIP));
 	buffer.put(ByteEncoder.encode16Bit(port));
+	buffer.rewind();
 	return buffer;
     }
 

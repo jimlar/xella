@@ -406,6 +406,12 @@ class GnutellaConnection {
 		currentInputBuffer.rewind();
 		log("decoding header " + currentInputBuffer.remaining() + " bytes");
 		currentMessageHeader = MessageHeader.readFrom(currentInputBuffer);
+
+		currentInputBuffer.rewind();
+		byte debug[] = new byte[currentInputBuffer.remaining()];
+		currentInputBuffer.get(debug);
+		log("received message header: ", debug);
+
 		currentInputBuffer = null;
 		connectionState = STATE_CONNECTED_RECEIVING_BODY;		
 	    }
@@ -431,6 +437,12 @@ class GnutellaConnection {
 
 		log("decoding message body " + currentInputBuffer.remaining() + " bytes");
 		Message message = messageDecoder.decodeMessage(currentMessageHeader, currentInputBuffer);
+		currentInputBuffer.rewind();
+		byte debug[] = new byte[currentInputBuffer.remaining()];
+		currentInputBuffer.get(debug);
+		log("received message body: ", debug);
+
+
 		numMessagesReceived++;
 		currentInputBuffer = null;
 		connectionState = STATE_CONNECTED_RECEIVING_HEADER;		
@@ -450,12 +462,36 @@ class GnutellaConnection {
 	    if (sendBuffer.size() > 0) {
 		Message message = (Message) sendBuffer.remove(0);
 		currentOutputBuffer = message.getByteBuffer();
+		log("sending message: " + message + ", bufferpos=" + currentOutputBuffer.position());
+
 		currentOutputBuffer.rewind();
+		byte debug[] = new byte[currentOutputBuffer.remaining()];
+		currentOutputBuffer.get(debug);
+		log("sending message: ", debug);
+		currentOutputBuffer.rewind();
+
 		socketChannel.write(currentOutputBuffer);
 		numMessagesSent++;
 		log("sent message (size=" + message.size() + ")");
 	    }
 	} 
+    }
+
+    private void log(String message, byte b[]) {
+	if (b != null) {
+	    for (int i = 0; i < b.length; i++) {
+		String value = Integer.toHexString(b[i] < 0 ? b[i] + 256: b[i]);
+		if (value.length() == 1) {
+		    value = "0" + value;
+		}
+		message += value;
+		if ((i + 1) % 4 == 0) {
+		    message += " ";
+		}
+	    }	    
+	}
+
+	log(message);
     }
 
     private void log(String message) {

@@ -42,12 +42,13 @@ public class PongMessage extends Message {
     }
 
     public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
+	ByteBuffer buffer = ByteBuffer.allocate(size());
 	buffer.put(getHeader().getByteBuffer());
 	buffer.put(ByteEncoder.encode16Bit(port));
 	buffer.put(ByteEncoder.encodeIPNumber(host));
 	buffer.put(ByteEncoder.encode32Bit(numShared));
 	buffer.put(ByteEncoder.encode32Bit(kilobytesShared));
+	buffer.rewind();
 	return buffer;
     }
 

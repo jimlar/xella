@@ -68,6 +68,7 @@ public class QueryResponseMessage extends Message {
     public ByteBuffer getByteBuffer() {
 	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
 	buffer.put(getHeader().getByteBuffer());
+	buffer.rewind();
 	throw new RuntimeException("not implemented yet!");
     }
     

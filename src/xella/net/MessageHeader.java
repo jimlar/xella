@@ -62,6 +62,7 @@ public class MessageHeader {
 	buf.put(ByteEncoder.encode8Bit(ttl));
 	buf.put(ByteEncoder.encode8Bit(hops));
 	buf.put(ByteEncoder.encode32Bit(payloadLength));
+	buf.rewind();
 	return buf;
     }
     

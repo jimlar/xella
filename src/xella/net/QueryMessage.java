@@ -24,6 +24,7 @@ public class QueryMessage extends Message {
 	buffer.put(ByteEncoder.encode16Bit(minSpeed));
 	buffer.put(ByteEncoder.encodeAsciiString(searchString));
 	buffer.put(ByteEncoder.encode8Bit(0));
+	buffer.rewind();
 	return buffer;
     }
 
