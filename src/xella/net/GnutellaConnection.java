@@ -35,15 +35,15 @@ class GnutellaConnection {
 
     private Exception disconnectReason;
 
-    private List sendBuffer;
+    private List sendQueue;
 
     private int numMessagesReceived = 0;
     private int numMessagesSent = 0;
 
     private int connectionState = STATE_NEW;
 
-    private ByteBuffer currentInputBuffer;
-    private ByteBuffer currentOutputBuffer;
+    private ByteBuffer inputBuffer;
+    private ByteBuffer outputBuffer;
     private MessageHeader currentMessageHeader;
 
 
@@ -86,7 +86,11 @@ class GnutellaConnection {
 	this.port = port;
 	this.socketChannel = socketChannel;
 	this.isClient = isClient;
-	this.sendBuffer = Collections.synchronizedList(new ArrayList());
+	this.sendQueue = Collections.synchronizedList(new ArrayList());
+	this.outputBuffer = ByteBuffer.allocateDirect(MAX_MESSAGESIZE);
+	this.outputBuffer.limit(0);
+	this.inputBuffer = ByteBuffer.allocateDirect(MAX_MESSAGESIZE);
+	this.inputBuffer.limit(0);
 
 	pumpConnection();
     }
@@ -96,8 +100,8 @@ class GnutellaConnection {
      */
     synchronized void send(Message message) {
 
-	synchronized (sendBuffer) {
-	    if (sendBuffer.size() >= SENDBUFFER_CLOSE_LEVEL) {
+	synchronized (sendQueue) {
+	    if (sendQueue.size() >= SENDBUFFER_CLOSE_LEVEL) {
 		disconnect(new IOException("send buffer overflow"));
 		engine.disconnected(new ConnectionInfo(host,
 						       port,
@@ -108,7 +112,7 @@ class GnutellaConnection {
 		return;
 	    }
 	    
-	    sendBuffer.add(message);
+	    sendQueue.add(message);
 	}
     }
 
@@ -133,69 +137,31 @@ class GnutellaConnection {
     synchronized void pumpConnection() {
 	
 	try {
+	    doReadWrite();
+
 	    switch (connectionState) {
 		
 	    case STATE_NEW:
-		try {
-		    startConnect();
-		} catch (IOException e) {
-		    disconnect(e);
-		    engine.connectFailed(new ConnectionInfo(host, 
-							    port,
-							    isClient,
-							    e.getMessage(),
-							    numMessagesReceived,
-							    numMessagesSent));
-		}
+		startConnect();
 		break;
 		
 	    case STATE_CONNECTING:
-		try {
-		    finishConnect();
-		} catch (IOException e) {
-		    disconnect(e);
-		    engine.connectFailed(new ConnectionInfo(host, 
-							    port,
-							    isClient,
-							    e.getMessage(),
-							    numMessagesReceived,
-							    numMessagesSent));
-		}
+		finishConnect();
 		break;
 		
 	    case STATE_HANDSHAKE_STEP1:
-		try {
-		    startHandshake();
-		} catch (IOException e) {
-		    disconnect(e);
-		    engine.connectFailed(new ConnectionInfo(host, 
-							    port,
-							    isClient,
-							    e.getMessage(),
-							    numMessagesReceived,
-							    numMessagesSent));
-		}
+		startHandshake();
 		break;
 		
 	    case STATE_HANDSHAKE_STEP2:
-		try {
-		    finishHandshake();
-		    if (isConnected()) {
-			engine.connected(new ConnectionInfo(host, 
-							    port, 
-							    isClient,
-							    "Connected",
-							    numMessagesReceived,
-							    numMessagesSent));
-		    }
-		} catch (IOException e) {
-		    disconnect(e);
-		    engine.connectFailed(new ConnectionInfo(host, 
-							    port,
-							    isClient,
-							    e.getMessage(),
-							    numMessagesReceived,
-							    numMessagesSent));
+		finishHandshake();
+		if (isConnected()) {
+		    engine.connected(new ConnectionInfo(host, 
+							port, 
+							isClient,
+							"Connected",
+							numMessagesReceived,
+							numMessagesSent));
 		}
 		break;
 		
@@ -213,19 +179,52 @@ class GnutellaConnection {
 		log("closed");
 		break;
 	    }
+
+	    doReadWrite();
+
 	} catch (Exception e) {
-	    e.printStackTrace();
+	    int state = connectionState;
 	    disconnect(e);
-	    engine.disconnected(new ConnectionInfo(host, 
-						   port, 
-						   isClient,
-						   e.getMessage(),
-						   numMessagesReceived,
-						   numMessagesSent));
+
+	    switch (state) {
+
+	    case STATE_NEW:
+	    case STATE_CONNECTING:
+	    case STATE_HANDSHAKE_STEP1:
+	    case STATE_HANDSHAKE_STEP2:
+		engine.connectFailed(new ConnectionInfo(host, 
+							port,
+							isClient,
+							e.getMessage(),
+							numMessagesReceived,
+							numMessagesSent));
+		break;
+
+	    default:
+		engine.disconnected(new ConnectionInfo(host, 
+						       port, 
+						       isClient,
+						       e.getMessage(),
+						       numMessagesReceived,
+						       numMessagesSent));
+		break;
+	    }
 	}
     }
 
-    
+    private void doReadWrite() throws IOException {
+	
+	/* Write if there are bytes to write */
+	if (outputBuffer.hasRemaining()) {
+	    socketChannel.write(outputBuffer);
+	} 
+	
+	/* Read if there are bytes to read */
+	if (inputBuffer.hasRemaining()) {
+	    socketChannel.read(inputBuffer);
+	} 
+    }
+
     private void startConnect() throws IOException {
 
 	/* Connect us if we are a client connection */
@@ -253,8 +252,6 @@ class GnutellaConnection {
 
 	if (this.socketChannel.isConnected()) {
 	    connectionState = STATE_HANDSHAKE_STEP1;
-	    currentInputBuffer = null;
-	    currentOutputBuffer = null;
 	}
     }
 
@@ -289,6 +286,9 @@ class GnutellaConnection {
 		send(MessageFactory.getInstance().createPingMessage());
 	    }
 
+	    /* Setup buffer for reading next header */
+	    inputBuffer.limit(MessageHeader.SIZE);
+	    inputBuffer.rewind();
 	    connectionState = STATE_CONNECTED_RECEIVING_HEADER;
 	}
     }
@@ -297,14 +297,17 @@ class GnutellaConnection {
 	throws IOException
     {
 	/* Send connect string and initiate readback */
-	ByteBuffer buffer = ByteBuffer.allocate(GnutellaConstants.CONNECT_MSG.length() + 2);
-	buffer.put(ByteEncoder.encodeAsciiString(GnutellaConstants.CONNECT_MSG + "\n\n")).rewind();
-	socketChannel.write(buffer);
+	outputBuffer.limit(GnutellaConstants.CONNECT_MSG.length() + 2);
+	outputBuffer.rewind();
+	outputBuffer.put(ByteEncoder.encodeAsciiString(GnutellaConstants.CONNECT_MSG + "\n\n"));
+	outputBuffer.rewind();
+	socketChannel.write(outputBuffer);
 
 	log("handshake sent, reading response...");
 
-	currentInputBuffer = ByteBuffer.allocate(GnutellaConstants.CONNECT_OK_REPLY.length() + 2);
-	socketChannel.read(currentInputBuffer);
+	inputBuffer.limit(GnutellaConstants.CONNECT_OK_REPLY.length() + 2);
+	inputBuffer.rewind();
+	socketChannel.read(inputBuffer);
 
 	return true;
     }
@@ -313,67 +316,62 @@ class GnutellaConnection {
 	throws IOException
     {
 	/* Has the whole reply arrived? */
-	if (currentInputBuffer.hasRemaining()) {
-	    socketChannel.read(currentInputBuffer);
-	} else {
+	if (!inputBuffer.hasRemaining()) {
 	    
-	    currentInputBuffer.rewind();
-	    String reply = ByteDecoder.decodeAsciiString(currentInputBuffer, 
-							 currentInputBuffer.capacity());
+	    inputBuffer.rewind();
+	    String reply = ByteDecoder.decodeAsciiString(inputBuffer, 
+							 inputBuffer.limit());
 	    
-	    this.currentInputBuffer = null;
 	    if (!reply.equalsIgnoreCase(GnutellaConstants.CONNECT_OK_REPLY + "\n\n")) {
 		throw new IOException("hanshaking error (reply was '" + reply + "')");
 	    }
 	    log("handshake ok!");
+	    inputBuffer.limit(0);
 	    return true;
 	}
 	return false;
     }
     
-    /**
-     * currentInputBuffer has to be null before calling this the first time
-     */
-
     private boolean startServerHandshake() 
 	throws IOException
     {
 	String expectedString = GnutellaConstants.CONNECT_MSG + "\n\n";
 
 	/* initiate read request */
-	if (currentInputBuffer == null) {
-	    currentInputBuffer = ByteBuffer.allocate(expectedString.length());
-	}
+	inputBuffer.limit(expectedString.length());
+	inputBuffer.rewind();
+	socketChannel.read(inputBuffer);
 
-	/* Has the whole reply arrived? */
-	if (currentInputBuffer.hasRemaining()) {
-	    socketChannel.read(currentInputBuffer);
-
-	} else {
-	    
-	    currentInputBuffer.rewind();
-	    byte strBytes[] = new byte[currentInputBuffer.capacity()];
-	    String message = ByteDecoder.decodeAsciiString(strBytes);
-	    this.currentInputBuffer = null;
-	    
-	    if (!message.equalsIgnoreCase(expectedString)) {
-		throw new IOException("hanshaking error (connect message was '" + message + "')");
-	    }
-	    return true;
-	}
-	return false;
+	return true;
     }
 
     private boolean finishServerHandshake() 
 	throws IOException
     {
-	String toSend = GnutellaConstants.CONNECT_OK_REPLY + "\n\n";
+	/* Has the whole reply arrived? */
+	if (!inputBuffer.hasRemaining()) {
+	    
+	    inputBuffer.rewind();
+	    byte strBytes[] = new byte[inputBuffer.limit()];
+	    String message = ByteDecoder.decodeAsciiString(strBytes);
+	    
+	    String expectedString = GnutellaConstants.CONNECT_MSG + "\n\n";
+	    if (!message.equalsIgnoreCase(expectedString)) {
+		throw new IOException("hanshaking error (connect message was '" + message + "')");
+	    }
+
+	    inputBuffer.limit(0);
+	    String toSend = GnutellaConstants.CONNECT_OK_REPLY + "\n\n";
 	
-	/* Send connect reply string */
-	ByteBuffer buffer = ByteBuffer.allocate(toSend.length());
-	buffer.put(ByteEncoder.encodeAsciiString(toSend)).rewind();
-	socketChannel.write(buffer);
-	return true;
+	    /* Send connect reply string */
+	    outputBuffer.limit(toSend.length());
+	    outputBuffer.rewind();
+	    outputBuffer.put(ByteEncoder.encodeAsciiString(toSend));
+	    outputBuffer.rewind();
+	    socketChannel.write(outputBuffer);
+	    return true;
+	}
+	return false;
     }
 
     /**
@@ -382,6 +380,8 @@ class GnutellaConnection {
      */
     synchronized void disconnect(Exception disconnectReason) {
 	if (!isClosed()) {
+	    inputBuffer.limit(0);
+	    outputBuffer.limit(0);
 	    this.disconnectReason = disconnectReason;
 	    try {
 		this.socketChannel.close();
@@ -395,102 +395,65 @@ class GnutellaConnection {
 
     private void receiveNextHeader() throws IOException {
 
-	if (currentInputBuffer == null) {
-	    currentInputBuffer = ByteBuffer.allocate(MessageHeader.SIZE);
-
-	} else {
-
-	    if (currentInputBuffer.hasRemaining()) {
-		socketChannel.read(currentInputBuffer);
-	    } else {
-		currentInputBuffer.rewind();
-		currentMessageHeader = MessageHeader.readFrom(currentInputBuffer);
-
-		currentInputBuffer.rewind();
-		byte debug[] = new byte[currentInputBuffer.remaining()];
-		currentInputBuffer.get(debug);
-		//log("received message header: ", debug);
-
-		currentInputBuffer = null;
-		connectionState = STATE_CONNECTED_RECEIVING_BODY;		
+	if (!inputBuffer.hasRemaining()) {
+	    inputBuffer.rewind();
+	    currentMessageHeader = MessageHeader.readFrom(inputBuffer);
+	    
+	    /* Setup buffer for reading body */
+	    if (currentMessageHeader.getMessageBodySize() > MAX_MESSAGESIZE) {
+		throw new IOException("message too big (size = " 
+				      + currentMessageHeader.getMessageBodySize());
 	    }
+	    
+	    inputBuffer.limit(currentMessageHeader.getMessageBodySize());
+	    inputBuffer.rewind();
+	    
+	    connectionState = STATE_CONNECTED_RECEIVING_BODY;
 	}
     }
 
     private void receiveNextMessage() throws IOException {
 
-	if (currentInputBuffer == null) {
-	    if (currentMessageHeader.getMessageBodySize() > MAX_MESSAGESIZE) {
-		throw new IOException("message too big (size = " 
-				      + currentMessageHeader.getMessageBodySize());
-	    }
-	    currentInputBuffer = ByteBuffer.allocate(currentMessageHeader.getMessageBodySize());
-
-	} else {
-
-	    if (currentInputBuffer.hasRemaining()) {
-		socketChannel.read(currentInputBuffer);
-	    } else {
-		currentInputBuffer.rewind();
-
-		Message message = messageDecoder.decodeMessage(currentMessageHeader, currentInputBuffer);
-		log("Got message: " + message);
-
-		currentInputBuffer.rewind();
-		byte debug[] = new byte[currentInputBuffer.remaining()];
-		currentInputBuffer.get(debug);
-		//log("received message body: ", debug);
-
-
-		numMessagesReceived++;
-		currentInputBuffer = null;
-		connectionState = STATE_CONNECTED_RECEIVING_HEADER;		
-		engine.registerReceivedMessage(message);
-	    }
+	if (!inputBuffer.hasRemaining()) {
+	    inputBuffer.rewind();
+	    
+	    Message message = messageDecoder.decodeMessage(currentMessageHeader, inputBuffer);
+	    numMessagesReceived++;
+	    engine.registerReceivedMessage(message);
+	    log("Got " + message);
+	    
+	    /* Setup buffer for reading next header */
+	    inputBuffer.limit(MessageHeader.SIZE);
+	    inputBuffer.rewind();
+	    connectionState = STATE_CONNECTED_RECEIVING_HEADER;		
 	}
     }
 
+    /**
+     * Fill outputBuffer with the next message if it's time
+     *
+     */
     private synchronized void sendNextMessage() throws IOException {
 
-	if (currentOutputBuffer != null && currentOutputBuffer.hasRemaining()) {
-	    socketChannel.write(currentOutputBuffer);	    
-	    
-	} else {
-	    
-	    if (sendBuffer.size() > 0) {
-		Message message = (Message) sendBuffer.remove(0);
+	/* Have everything been sent? */
+	if (!outputBuffer.hasRemaining()) {
+	    if (sendQueue.size() > 0) {
+		Message message = (Message) sendQueue.remove(0);
+		if (message.size() > MAX_MESSAGESIZE) {
+		    throw new IOException("tried to send to large message");
+		}
 		log("sending message: " + message);
-
-		currentOutputBuffer = ByteBuffer.allocate(message.size());
-		message.writeTo(currentOutputBuffer);
-		currentOutputBuffer.rewind();
-
-		//byte debug[] = new byte[currentOutputBuffer.remaining()];
-		//currentOutputBuffer.get(debug);
-		//log("sending message: ", debug);
-		//currentOutputBuffer.rewind();
-
-		socketChannel.write(currentOutputBuffer);
+		
+		outputBuffer.limit(message.size());
+		outputBuffer.rewind();
+		message.writeTo(outputBuffer);
+		outputBuffer.rewind();
 		numMessagesSent++;
+		
+		/* We might aswell do a write right now */
+		socketChannel.write(outputBuffer);
 	    }
 	} 
-    }
-
-    private void log(String message, byte b[]) {
-	if (b != null) {
-	    for (int i = 0; i < b.length; i++) {
-		String value = Integer.toHexString(b[i] < 0 ? b[i] + 256: b[i]);
-		if (value.length() == 1) {
-		    value = "0" + value;
-		}
-		message += value;
-		if ((i + 1) % 4 == 0) {
-		    message += " ";
-		}
-	    }	    
-	}
-
-	log(message);
     }
 
     private void log(String message) {

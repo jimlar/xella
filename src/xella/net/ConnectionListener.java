@@ -11,8 +11,9 @@ public interface ConnectionListener {
     void connecting(ConnectionInfo info);
     void connected(ConnectionInfo info);
     void connectFailed(ConnectionInfo info);
-    void hostIgnored(ConnectionInfo info);
-    void hostDiscovered(ConnectionInfo info);
     void disconnected(ConnectionInfo info);
     void statusChange(ConnectionInfo info);
+
+    void hostIgnored(Host host);
+    void hostDiscovered(Host host);
 }

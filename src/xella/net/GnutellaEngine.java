@@ -13,6 +13,7 @@ import java.util.*;
 public class GnutellaEngine {
 
     private ConnectionGroup connectionGroup;
+    private HostCatcher hostCatcher;
     private Router router;
     private Collection messageListeners;
     private Collection connectionListeners;
@@ -27,17 +28,17 @@ public class GnutellaEngine {
     public GnutellaEngine(int minConnections, int maxConnections, int port) 
 	throws IOException
     {
-	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
-	this.port = port;
-	this.router = new Router(10, 2000, this.connectionGroup);
 	this.messageListeners = new ArrayList();
 	this.connectionListeners = new ArrayList();
+	this.port = port;
+	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
+	this.hostCatcher = new HostCatcher(this);
+	this.router = new Router(10, 2000, this.connectionGroup);
     }
 
     public void start() throws IOException {
 	if (connectionsWatch == null) {
-	    connectionsWatch = new ConnectionsWatch(this, connectionGroup);
-	    addMessageListener(connectionsWatch);
+	    connectionsWatch = new ConnectionsWatch(this);
 	}
 
 	if (serverSocketManager == null) {
@@ -69,9 +70,7 @@ public class GnutellaEngine {
     }
 
     public void addHost(String host, int port) {
-	if (connectionsWatch != null) {
-	    connectionsWatch.addHost(host, port);
-	}
+	hostCatcher.addHost(host, port);
     }
 
     void registerReceivedMessage(Message message) {
@@ -101,6 +100,10 @@ public class GnutellaEngine {
 	return connectionGroup;
     }
 
+    HostCatcher getHostCatcher() {
+	return hostCatcher;
+    }
+
     void connecting(ConnectionInfo info) {
 	Iterator iter = connectionListeners.iterator();
 	while (iter.hasNext()) {
@@ -125,22 +128,6 @@ public class GnutellaEngine {
 	}
     }
     
-    void hostIgnored(ConnectionInfo info) {
-	Iterator iter = connectionListeners.iterator();
-	while (iter.hasNext()) {
-	    ConnectionListener listener = (ConnectionListener) iter.next();
-	    listener.hostIgnored(info);
-	}
-    }
-    
-    void hostDiscovered(ConnectionInfo info) {
-	Iterator iter = connectionListeners.iterator();
-	while (iter.hasNext()) {
-	    ConnectionListener listener = (ConnectionListener) iter.next();
-	    listener.hostDiscovered(info);
-	}
-    }
-    
     void disconnected(ConnectionInfo info) {
 	Iterator iter = connectionListeners.iterator();
 	while (iter.hasNext()) {
@@ -156,4 +143,20 @@ public class GnutellaEngine {
 	    listener.statusChange(info);
 	}
     }
+
+    void hostIgnored(Host host) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.hostIgnored(host);
+	}
+    }
+    
+    void hostDiscovered(Host host) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.hostDiscovered(host);
+	}
+    }    
 }

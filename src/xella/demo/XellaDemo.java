@@ -358,12 +358,12 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 	updateStatistics();
     }
     
-    public synchronized void hostIgnored(ConnectionInfo info) {
+    public synchronized void hostIgnored(Host host) {
 	numHostsIgnored++;
 	updateStatistics();
     }
     
-    public synchronized void hostDiscovered(ConnectionInfo info) {
+    public synchronized void hostDiscovered(Host host) {
 	numKnownHosts++;
 	updateStatistics();
     }
