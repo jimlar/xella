@@ -15,6 +15,18 @@ class MessageGenerator {
 	sendDescriptorHeader(out, GnutellaConstants.PAYLOAD_PING, 7, 0, 0);
     }
 
+    public static void sendPong(OutputStream out) throws IOException {
+    }
+
+    public static void sendQuery(OutputStream out) throws IOException {
+    }
+
+    public static void sendQueryHit(OutputStream out) throws IOException {
+    }
+
+    public static void sendPush(OutputStream out) throws IOException {
+    }
+
     private static void sendDescriptorHeader(OutputStream out,
 					     int          payloadDescriptor,
 					     int          ttl,
