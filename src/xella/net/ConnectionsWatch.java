@@ -48,9 +48,12 @@ class ConnectionsWatch extends Thread implements MessageListener {
 		    break;
 		}
 	    }
-	    try {
-		Thread.sleep(500);
-	    } catch (InterruptedException e) {}
+
+	    Iterator iter = connectionGroup.iterator();
+	    while (iter.hasNext()) {
+		GnutellaConnection con = (GnutellaConnection) iter.next();
+		con.pumpConnection();
+	    }
 	}
     }
     

@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class UnsupportedMessage extends Message {
 
@@ -13,15 +14,9 @@ public class UnsupportedMessage extends Message {
 	throw new RuntimeException("cant send unsupported messages!");
     }
 
-    public static UnsupportedMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
-	throws IOException
-    {
-	GnutellaInputStream in = connection.getInputStream();
-
-	/* unsupported message type, just read past the body */
-	for (int i = 0; i < messageHeader.getMessageBodySize(); i++) {
-	    in.read();
-	}
+    public static UnsupportedMessage readFrom(ByteBuffer buffer,
+					      MessageHeader messageHeader, 
+					      GnutellaConnection connection) {
 
 	return new UnsupportedMessage(connection, messageHeader);
     }

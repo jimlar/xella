@@ -36,13 +36,15 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     public XellaDemo() throws IOException {
         initComponents();
 	updateStatistics();
-        this.engine = new GnutellaEngine(20, 30, 6346);
+        this.engine = new GnutellaEngine(1, 1, 6346);
 	engine.addMessageListener(this);
 	engine.addConnectionListener(this);
 	engine.start();
-	engine.addHost("gnutellahosts.com", 6346);
-	engine.addHost("router.limewire.com", 6346);
-        engine.addHost("gnutella.hostscache.com", 6346);
+
+	engine.addHost("127.0.0.1", 2944);
+// 	engine.addHost("gnutellahosts.com", 6346);
+// 	engine.addHost("router.limewire.com", 6346);
+//         engine.addHost("gnutella.hostscache.com", 6346);
     }
 
     /** This method is called from within the constructor to

@@ -41,6 +41,10 @@ public abstract class Message {
 
     public abstract ByteBuffer getByteBuffer();
 
+
+    public int size() {
+	return MessageHeader.SIZE + getHeader().getMessageBodySize();
+    }
     /**
      * Increase hops and decrease TTL of message
      */

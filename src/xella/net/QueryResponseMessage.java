@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -65,20 +66,19 @@ public class QueryResponseMessage extends Message {
     }
     
     public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + MessageHeader.getMessageBodySize());
+	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
 	buffer.put(getHeader().getByteBuffer());
 	throw new RuntimeException("not implemented yet!");
     }
     
-    public static QueryResponseMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
-	throws IOException
-    {
-	GnutellaInputStream in = connection.getInputStream();
+    public static QueryResponseMessage readFrom(ByteBuffer buffer,
+						MessageHeader messageHeader,
+						GnutellaConnection connection) {
 
-	int numberOfHits = in.read8Bit();
-	int port = in.read16Bit();
-	String hostIP = in.readIPNumber();
-	int hostSpeed = in.read32Bit();	
+	int numberOfHits = ByteDecoder.decode8Bit(buffer);
+	int port = ByteDecoder.decode16Bit(buffer);
+	String hostIP = ByteDecoder.decodeIPNumber(buffer);
+	int hostSpeed = ByteDecoder.decode32Bit(buffer);
 	List queryHits = new ArrayList();
 	
 	/*
@@ -88,17 +88,18 @@ public class QueryResponseMessage extends Message {
 	
 	/* Read all hits */
 	for (int i = 0; i < numberOfHits; i++) {
-	    int fileIndex = in.read32Bit();
-	    int fileSize = in.read32Bit();
-	    String fileName = in.readAsciiString();
+	    int fileIndex = ByteDecoder.decode32Bit(buffer);
+	    int fileSize = ByteDecoder.decode32Bit(buffer);
+	    String fileName = ByteDecoder.decodeAsciiString(buffer);
 	    
 	    /* throw away extra null terminator */
-	    in.read8Bit();
+	    int nullTerminator = ByteDecoder.decode8Bit(buffer);
 	    
 	    queryHits.add(new QueryHit(fileIndex, fileSize, fileName));
 	}
 	
-	byte serventId[] = in.readServentIdentifier();
+	byte serventId[] = new byte[16];
+	buffer.get(serventId);
 	
 	return new QueryResponseMessage(connection,
 					messageHeader, 

@@ -1,6 +1,8 @@
 
 package xella.net;
 
+import java.io.*;
+import java.util.*;
 
 /**
  * Byte encoder that supports encodings needed by gnutella
@@ -36,28 +38,34 @@ public class ByteEncoder {
     }
     
     public static byte[] encodeIPNumber(String ipNumber) {
+
 	StringTokenizer st = new StringTokenizer(ipNumber, ".");
 	if (st.countTokens() != 4) {
-	    throw new IOException("ip number must be on dotted decimal form (got " 
-				  + ipNumber + ")");
+	    throw new IllegalArgumentException("ip number must be on dotted decimal form (got " 
+					       + ipNumber + ")");
 	}
 	
-	byte b[] = new byte[4];
+	byte bytes[] = new byte[4];
 	int i = 0;
 	while (st.hasMoreTokens()) {
 	    String b = st.nextToken();
 	    try {
-		b[i++] = encode8Bit(Integer.parseInt(b));
+		bytes[i++] = encode8Bit(Integer.parseInt(b));
 	    } catch (NumberFormatException e) {
-		throw new IOException("ip number must be on dotted decimal form (got " 
+		throw new IllegalArgumentException("ip number must be on dotted decimal form (got " 
 				      + ipNumber + ")");
 	    }
 	}
-	return b;
+	return bytes;
     }
 
     public static byte[] encodeAsciiString(String str) {
-	byte bytes[] = str.getBytes("ascii");
-	return bytes;
+	try {
+	    byte bytes[] = str.getBytes("ascii");
+	    return bytes;
+	} catch (UnsupportedEncodingException e) {
+	    //This cant really happen...
+	    return null;
+	}
     }
 }

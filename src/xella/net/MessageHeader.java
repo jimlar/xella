@@ -65,22 +65,16 @@ public class MessageHeader {
 	return buf;
     }
     
-    public static MessageHeader receive(GnutellaConnection connection) 
+    public static MessageHeader readFrom(ByteBuffer buffer) 
 	throws IOException
     {
-	GnutellaInputStream in = connection.getInputStream();
-
 	byte descriptorId[] = new byte[16];
-	int bytesRead = in.read(descriptorId);
- 	if (bytesRead != descriptorId.length) {
- 	    throw new IOException("EOF before descriptor id read (read " 
- 				  + bytesRead + " bytes)");
- 	}
+	buffer.get(descriptorId);
 	
-	int payloadDescriptor = in.read8Bit();
-	int ttl = in.read8Bit();
-	int hops = in.read8Bit();
-	int payloadLength = in.read32Bit();
+	int payloadDescriptor = ByteDecoder.decode8Bit(buffer);
+	int ttl = ByteDecoder.decode8Bit(buffer);
+	int hops = ByteDecoder.decode8Bit(buffer);
+	int payloadLength = ByteDecoder.decode32Bit(buffer);
 	    
 	return new MessageHeader(descriptorId, payloadDescriptor, ttl, hops, payloadLength);
     }

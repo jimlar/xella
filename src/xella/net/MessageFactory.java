@@ -13,6 +13,7 @@ import java.util.*;
 public class MessageFactory {
     
     private static MessageFactory instance;
+    private long startTime = System.currentTimeMillis();
     private long nextMessageId = 1;
 
     public static MessageFactory getInstance() {
@@ -88,10 +89,7 @@ public class MessageFactory {
     }
 
     /**
-     * As far as I understand the java API docs this is not valid if you are
-     * on a machine with a non-public IP number (ie. 192.168.*.* or 10.*.*.*)
-     *
-     * But it is the method that Phex of Furi uses so i'll stick with it for now
+     * These do only have to be unique to our host so this will do
      *
      */
 
@@ -99,29 +97,15 @@ public class MessageFactory {
 	
 	long messageId = nextMessageId++;
 	byte toReturn[] = new byte[16];
+
 	for (int i = 0; i < 8; i++) {
-	    toReturn[i] = (byte) ((messageId >> (i * 8)) & 0xff);
+	    toReturn[i] = (byte) ((startTime >> (i * 8)) & 0xff);
+	}
+
+	for (int i = 8; i < 16; i++) {
+	    toReturn[i] = (byte) ((messageId >> ((i - 8) * 8)) & 0xff);
 	}
 
 	return toReturn;
     }
-
-//    private byte[] getNewDescriptorId() {
-// 	String vmId = (new java.rmi.dgc.VMID()).toString();
-// 	byte toReturn[] = new byte[16];
-	
-// 	for (int i = 0, j = 0; i < vmId.length(); i++) {
-// 	    if (i < 16) {
-// 		toReturn[j] = (byte) vmId.charAt(i);
-// 	    } else {
-// 		toReturn[j] ^= (byte) vmId.charAt(i);
-// 	    }
-// 	    j++;
-// 	    if (j >= 16) {
-// 		j = 0;
-// 	    }
-// 	}
-
-// 	return toReturn;
-//     }
 }

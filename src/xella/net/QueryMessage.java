@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class QueryMessage extends Message {
     
@@ -18,7 +19,7 @@ public class QueryMessage extends Message {
     }
     
     public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + MessageHeader.getMessageBodySize());
+	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
 	buffer.put(getHeader().getByteBuffer());
 	buffer.put(ByteEncoder.encode16Bit(minSpeed));
 	buffer.put(ByteEncoder.encodeAsciiString(searchString));
@@ -26,16 +27,16 @@ public class QueryMessage extends Message {
 	return buffer;
     }
 
-    public static QueryMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
-	throws IOException
-    {
-	GnutellaInputStream in = connection.getInputStream();
+    public static QueryMessage readFrom(ByteBuffer buffer,
+					MessageHeader messageHeader, 
+					GnutellaConnection connection) {
 
-	int minSpeed = in.read16Bit();
+	int minSpeed = ByteDecoder.decode16Bit(buffer);
 	int stringSize = messageHeader.getMessageBodySize() - 3;
-	String searchString = in.readAsciiString(stringSize);
+	String searchString = ByteDecoder.decodeAsciiString(buffer, stringSize);
+
 	/* discard the null terminator */	
-	in.read8Bit();
+	int dummy = ByteDecoder.decode8Bit(buffer);
 	
 	return new QueryMessage(connection, messageHeader, searchString, minSpeed);
     }

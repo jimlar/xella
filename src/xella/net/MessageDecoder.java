@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 /**
  * This class can decode Gnutella messages
@@ -16,31 +17,27 @@ class MessageDecoder {
 	this.connection = connection;
     }
 
-    public MessageHeader decodeNextMessageHeader() throws IOException {
-	return MessageHeader.receive(connection);
-    }
-
-    public Message decodeNextMessage(MessageHeader messageHeader) throws IOException {
+    public Message decodeMessage(MessageHeader messageHeader, ByteBuffer buffer) {
 	
 	switch (messageHeader.getMessageType()) {
 
 	case GnutellaConstants.PAYLOAD_PING:
-	    return PingMessage.receive(messageHeader, connection);
+	    return PingMessage.readFrom(buffer, messageHeader, connection);
 
  	case GnutellaConstants.PAYLOAD_PONG:
-	    return PongMessage.receive(messageHeader, connection);
+	    return PongMessage.readFrom(buffer, messageHeader, connection);
 
  	case GnutellaConstants.PAYLOAD_PUSH:
-	    return PushMessage.receive(messageHeader, connection);
+	    return PushMessage.readFrom(buffer, messageHeader, connection);
 
  	case GnutellaConstants.PAYLOAD_QUERY:
-	    return QueryMessage.receive(messageHeader, connection);
+	    return QueryMessage.readFrom(buffer, messageHeader, connection);
 
  	case GnutellaConstants.PAYLOAD_QUERY_HIT:
-	    return QueryResponseMessage.receive(messageHeader, connection);
+	    return QueryResponseMessage.readFrom(buffer, messageHeader, connection);
 
 	default:
-	    return UnsupportedMessage.receive(messageHeader, connection);
+	    return UnsupportedMessage.readFrom(buffer, messageHeader, connection);
 	}
     }
 }

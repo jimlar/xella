@@ -14,9 +14,9 @@ public class PingMessage extends Message {
 	return getHeader().getByteBuffer();
     }
 
-    public static PingMessage receive(MessageHeader header, GnutellaConnection connection) 
-	throws IOException
-    {
+    public static PingMessage readFrom(ByteBuffer buffer, 
+				       MessageHeader header, 
+				       GnutellaConnection connection) {
 	return new PingMessage(connection, header);
     }
 

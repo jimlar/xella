@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class PongMessage extends Message {
     
@@ -41,7 +42,7 @@ public class PongMessage extends Message {
     }
 
     public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + MessageHeader.getMessageBodySize());
+	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
 	buffer.put(getHeader().getByteBuffer());
 	buffer.put(ByteEncoder.encode16Bit(port));
 	buffer.put(ByteEncoder.encodeIPNumber(host));
@@ -50,14 +51,14 @@ public class PongMessage extends Message {
 	return buffer;
     }
 
-    public static PongMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
-	throws IOException
-    {
-	GnutellaInputStream in = connection.getInputStream();
-	int port = in.read16Bit();
-	String host = in.readIPNumber();
-	int numShared = in.read32Bit();
-	int kilobytesShared = in.read32Bit();
+    public static PongMessage readFrom(ByteBuffer buffer, 
+				       MessageHeader messageHeader, 
+				       GnutellaConnection connection) {
+
+	int port = ByteDecoder.decode16Bit(buffer);
+	String host = ByteDecoder.decodeIPNumber(buffer);
+	int numShared = ByteDecoder.decode32Bit(buffer);
+	int kilobytesShared = ByteDecoder.decode32Bit(buffer);
 	return new PongMessage(connection, messageHeader, host, port, numShared, kilobytesShared);
     }
 

@@ -2,6 +2,7 @@
 package xella.net;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class PushMessage extends Message {
 
@@ -23,22 +24,26 @@ public class PushMessage extends Message {
 	this.fileIndex = fileIndex;
     }
     
-    public void send(GnutellaOutputStream out) throws IOException {
-	getHeader().send(out);
-	out.writeServentIdentifier(serventId);
-	out.write32Bit(fileIndex);
-	out.writeIPNumber(hostIP);
-	out.write16Bit(port);
+    public ByteBuffer getByteBuffer() {
+	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
+	buffer.put(getHeader().getByteBuffer());
+
+	buffer.put(serventId);
+	buffer.put(ByteEncoder.encode32Bit(fileIndex));
+	buffer.put(ByteEncoder.encodeIPNumber(hostIP));
+	buffer.put(ByteEncoder.encode16Bit(port));
+	return buffer;
     }
 
-    public static PushMessage receive(MessageHeader messageHeader, GnutellaConnection connection) 
-	throws IOException
-    {
-	GnutellaInputStream in = connection.getInputStream();
-	byte serventId[] = in.readServentIdentifier();
-	int fileIndex = in.read32Bit();
-	String host = in.readIPNumber();
-	int port = in.read16Bit();
+    public static PushMessage readFrom(ByteBuffer buffer,
+				       MessageHeader messageHeader, 
+				       GnutellaConnection connection) {
+
+	byte serventId[] = new byte[16];
+	buffer.get(serventId);
+	int fileIndex = ByteDecoder.decode32Bit(buffer);
+	String host = ByteDecoder.decodeIPNumber(buffer);
+	int port = ByteDecoder.decode32Bit(buffer);
 	
 	return new PushMessage(connection, messageHeader, serventId, host, port, fileIndex);
     }
