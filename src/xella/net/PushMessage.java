@@ -34,7 +34,6 @@ public class PushMessage extends Message {
     public String toString() {
 	return "PushMessage: host=" + hostIP
 	    + ", port=" + port
-	    + ", fileIndex=" + fileIndex
-	    + ", header=" + getHeader().toString();
+	    + ", fileIndex=" + fileIndex;
     }
 }

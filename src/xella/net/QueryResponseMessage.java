@@ -51,7 +51,6 @@ public class QueryResponseMessage extends Message {
 	    toReturn += "  " + hit + "\n";
 	}
 
-	toReturn += "header=" + getHeader().toString();
 	return toReturn;
     }
 }

@@ -14,6 +14,6 @@ public class PingMessage extends Message {
     }
 
     public String toString() {
-	return "PingMessage: " + getHeader().toString();
+	return "PingMessage";
     }
 }

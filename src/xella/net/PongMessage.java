@@ -36,7 +36,6 @@ public class PongMessage extends Message {
 	return "PongMessage: host=" + host 
 	    + ", port=" + port
 	    + ", numShared=" + numShared
-	    + ", kilobytesShared=" + kilobytesShared
-	    + ", " + getHeader().toString();
+	    + ", kilobytesShared=" + kilobytesShared;
     }
 }

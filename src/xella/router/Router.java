@@ -17,6 +17,15 @@ public class Router {
     private RoutingPolicy policy;
     private Set connections;
 
+    /** Cache to remember ping routes */
+    private MessageCache pingCache;
+
+    /** Cache to remember query routes */
+    private MessageCache queryCache;
+
+    /** Cache to remember query response routes */
+    private MessageCache queryResponseCache;
+
     /**
      * Create a router with default routing policy
      */
@@ -29,17 +38,26 @@ public class Router {
      */
     public Router(RoutingPolicy policy) {
 	this.policy = policy;
-	this.connections = new HashSet();
+	this.connections = Collections.synchronizedSet(new HashSet());
+	this.pingCache = new MessageCache(policy.getRouterMessageHistorySize());
+	this.queryCache = new MessageCache(policy.getRouterMessageHistorySize());
+	this.queryResponseCache = new MessageCache(policy.getRouterMessageHistorySize());
     }
     
-    public void addConnection(GnutellaConnection connection) {
+    public synchronized void addConnection(GnutellaConnection connection) {
 	connections.add(connection);
     }    
 
-    public void removeConnection(GnutellaConnection connection) {
+    public synchronized void removeConnection(GnutellaConnection connection) {
 	connections.remove(connection);
     }
 
+    /**
+     * Route a message, if message is too old, or do not conform to policy
+     * the message is dropped (ie. message.drop() is called and message is not sent anywhere)
+     *
+     * The message is aged by this method.
+     */
     public void route(Message message) throws IOException {
 
 	/* Fix hops and ttl */
@@ -52,46 +70,72 @@ public class Router {
 	}
 
 	/* check policy for unwanted messages */
-	if (!policyChecksOut(message)) {
+	if (!isCompliantWithPolicy(message)) {
 	    message.drop();
 	    return;
 	}
 
 	if (message instanceof PingMessage) {
-	    route((PingMessage) message);
+	    routePing((PingMessage) message);
 	} else if (message instanceof PongMessage) {
-	    route((PongMessage) message);
+	    routePong((PongMessage) message);
 	} else if (message instanceof PushMessage) {
-	    route((PushMessage) message);
+	    routePush((PushMessage) message);
 	} else if (message instanceof QueryMessage) {
-	    route((QueryMessage) message);
+	    routeQuery((QueryMessage) message);
 	} else if (message instanceof QueryResponseMessage) {
-	    route((QueryResponseMessage) message);
+	    routeQueryResponse((QueryResponseMessage) message);
 	}
     }
 
-    public void route(PingMessage message) throws IOException {
+    /**
+     * Ping is broadcasted
+     */
+    private void routePing(PingMessage message) throws IOException {
+	System.out.println("routing ping message");	
+	pingCache.add(message);
 	broadcast(message);
     }
     
-    public void route(PongMessage message) throws IOException {
+    /**
+     * Pong is routed back the same way the ping came
+     */
+    private void routePong(PongMessage message) throws IOException {
 	System.out.println("routing pong message");	
+	routeBack(message, pingCache);
     }
 
-    public void route(PushMessage message) throws IOException {
+    /**
+     * Pushes are routed back the same way the query response message came
+     */
+    private void routePush(PushMessage message) throws IOException {
 	System.out.println("routing push message");	
+	routeBack(message, queryResponseCache);
     }
 
-    public void route(QueryMessage message) throws IOException {
-	System.out.println("routing query message");	
+    /**
+     * Queries are broadcasted
+     */
+    private void routeQuery(QueryMessage message) throws IOException {
+	System.out.println("routing query message");
+	queryCache.add(message);
+	broadcast(message);
     }
 
-    public void route(QueryResponseMessage message) throws IOException {
+    /**
+     * Query responses are routed back the same way the query message came
+     */
+    private void routeQueryResponse(QueryResponseMessage message) throws IOException {
 	System.out.println("routing query response message");	
+	queryResponseCache.add(message);
+	routeBack(message, queryCache);
     }
 
 
-    private boolean policyChecksOut(Message message) {
+    /**
+     * Check policy and return true if its ok to proceed with this message
+     */
+    private boolean isCompliantWithPolicy(Message message) {
 	return (message.getTTL() <= policy.getMaxTTL());
     }
 
@@ -109,5 +153,40 @@ public class Router {
 		connection.send(message);
 	    }
 	}
+    }
+
+    /**
+     * Send message back through the path of a cached message. 
+     * For instance: pongs should be routed back the way the original ping came. 
+     *
+     * If the connection for the path is not valid anymore the message is dropped.
+     *
+     * @param message the message to route
+     * @param cache the messagecache to use when trying to find the path
+     */
+    private void routeBack(Message message, MessageCache cache) throws IOException {
+	
+	System.out.println("routingBack: " + message);
+
+	Message parentMessage = cache.getByDescriptorId(message.getDescriptorId());
+	if (parentMessage == null) {
+	    message.drop();
+	    System.out.println("message dropped: parent message not seen (or too late)");
+	    return;
+	} 
+
+	Iterator iter = connections.iterator();
+	while (iter.hasNext()) {
+	    GnutellaConnection connection = (GnutellaConnection) iter.next();
+	    if (parentMessage.receivedFrom(connection)) {
+		/* successful route, send message */
+		connection.send(message);
+		return;
+	    }
+	}
+
+	/* The path was not valid, drop message */ 
+	message.drop();
+	System.out.println("message dropped: connection of parent message no longer valid");
     }
 }

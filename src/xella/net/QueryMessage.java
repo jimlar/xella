@@ -27,6 +27,6 @@ public class QueryMessage extends Message {
     }
 
     public String toString() {
-	return "QueryMessage: query=" + searchString + ", minSpeed=" + minSpeed + ", " + getHeader().toString();
+	return "QueryMessage: query=" + searchString + ", minSpeed=" + minSpeed;
     }
 }
