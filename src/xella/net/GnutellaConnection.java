@@ -356,6 +356,8 @@ class GnutellaConnection {
 	    
 	    inputBuffer.rewind();
 	    byte strBytes[] = new byte[inputBuffer.limit()];
+	    inputBuffer.get(strBytes);
+
 	    String message = ByteDecoder.decodeAsciiString(strBytes);
 	    
 	    String expectedString = CONNECT_MSG + "\n\n";

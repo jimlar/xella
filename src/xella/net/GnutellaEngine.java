@@ -17,43 +17,34 @@ public class GnutellaEngine {
     private Router router;
     private Collection messageListeners;
     private Collection connectionListeners;
-    private ConnectionsWatch connectionsWatch;
-    private int port;
-    private ServerSocketManager serverSocketManager;
+    private ConnectionsPump connectionsPump;
+    private int listenPort;
 
     /**
      * @param numberOfConnections the number of connections to keep up
-     * @param port the port for incoming connections
+     * @param listenPort the port for incoming connections
      */
-    public GnutellaEngine(int minConnections, int maxConnections, int port) 
+    public GnutellaEngine(int minConnections, int maxConnections, int listenPort) 
 	throws IOException
     {
 	this.messageListeners = new ArrayList();
 	this.connectionListeners = new ArrayList();
-	this.port = port;
+	this.listenPort = listenPort;
 	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
 	this.router = new Router(10, 2000, this.connectionGroup);
 	this.hostCatcher = new HostCatcher(this);
     }
 
     public void start() throws IOException {
-	if (connectionsWatch == null) {
-	    connectionsWatch = new ConnectionsWatch(this);
-	}
-
-	if (serverSocketManager == null) {
-	    serverSocketManager = new ServerSocketManager(port, this);
+	if (connectionsPump == null) {
+	    connectionsPump = new ConnectionsPump(this);
 	}
     }
 
     public void stop() {
-	if (connectionsWatch != null) {
-	    connectionsWatch.shutdown();
-	    connectionsWatch = null;
-	}
-	if (serverSocketManager != null) {
-	    serverSocketManager.shutdown();
-	    serverSocketManager = null;
+	if (connectionsPump != null) {
+	    connectionsPump.shutdown();
+	    connectionsPump = null;
 	}
     }
 
@@ -71,6 +62,10 @@ public class GnutellaEngine {
 
     public void addHost(String host, int port) {
 	hostCatcher.addHost(host, port);
+    }
+
+    public int getListenPort() {
+	return this.listenPort;
     }
 
     void registerReceivedMessage(Message message) {

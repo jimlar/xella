@@ -3,12 +3,13 @@ Things to do:
 -------------
 - The connections need timeouts
 
-- Implement the server socket again
-
-- Use two permanent buffers instead of allocating all the time
-
 - Implement download/upload/push
 
 - Checkout the "routeBack" method, I think it's broken (or too small caches)
 
 - Store statistics about dropped messages
+
+- Prevent connecting to the same server twice
+
+- Store a cache about already seen messages so we can drop them directly
+
