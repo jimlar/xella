@@ -6,6 +6,8 @@ Things to do:
   - GnutellaConnection in progress
     - need timeouts
 
+- I think I messed up the byte encodings, dump messages and check it out!
+
 - Implement download/upload/push
 - Checkout the "routeBack" method, I think it's broken (or too small caches)
 

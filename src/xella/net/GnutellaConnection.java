@@ -297,13 +297,13 @@ class GnutellaConnection {
 	throws IOException
     {
 	/* Send connect string and initiate readback */
-	ByteBuffer buffer = ByteBuffer.allocateDirect(GnutellaConstants.CONNECT_MSG.length() + 2);
+	ByteBuffer buffer = ByteBuffer.allocate(GnutellaConstants.CONNECT_MSG.length() + 2);
 	buffer.put(ByteEncoder.encodeAsciiString(GnutellaConstants.CONNECT_MSG + "\n\n")).rewind();
 	socketChannel.write(buffer);
 
 	log("handshake sent, reading response...");
 
-	currentInputBuffer = ByteBuffer.allocateDirect(GnutellaConstants.CONNECT_OK_REPLY.length() + 2);
+	currentInputBuffer = ByteBuffer.allocate(GnutellaConstants.CONNECT_OK_REPLY.length() + 2);
 	socketChannel.read(currentInputBuffer);
 	log("response read request sent");
 	return true;
@@ -342,7 +342,7 @@ class GnutellaConnection {
 
 	/* initiate read request */
 	if (currentInputBuffer == null) {
-	    currentInputBuffer = ByteBuffer.allocateDirect(expectedString.length());
+	    currentInputBuffer = ByteBuffer.allocate(expectedString.length());
 	}
 
 	/* Has the whole reply arrived? */
@@ -370,7 +370,7 @@ class GnutellaConnection {
 	String toSend = GnutellaConstants.CONNECT_OK_REPLY + "\n\n";
 	
 	/* Send connect reply string */
-	ByteBuffer buffer = ByteBuffer.allocateDirect(toSend.length());
+	ByteBuffer buffer = ByteBuffer.allocate(toSend.length());
 	buffer.put(ByteEncoder.encodeAsciiString(toSend)).rewind();
 	socketChannel.write(buffer);
 	return true;
@@ -396,7 +396,7 @@ class GnutellaConnection {
     private void receiveNextHeader() throws IOException {
 
 	if (currentInputBuffer == null) {
-	    currentInputBuffer = ByteBuffer.allocateDirect(MessageHeader.SIZE);
+	    currentInputBuffer = ByteBuffer.allocate(MessageHeader.SIZE);
 	    log("initiated header read");
 	} else {
 
@@ -419,7 +419,7 @@ class GnutellaConnection {
 		throw new IOException("message too big (size = " 
 				      + currentMessageHeader.getMessageBodySize());
 	    }
-	    currentInputBuffer = ByteBuffer.allocateDirect(currentMessageHeader.getMessageBodySize());
+	    currentInputBuffer = ByteBuffer.allocate(currentMessageHeader.getMessageBodySize());
 	    log("initiated message body read");
 
 	} else {

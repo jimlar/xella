@@ -92,7 +92,7 @@ class ConnectionGroup {
 	    if (!key.isValid()) {
 		str += "(invalid key) ";
 	    }
-	    System.out.println(str);
+	    //    System.out.println(str);
 
 	    toReturn.add(key.attachment());
 	}	

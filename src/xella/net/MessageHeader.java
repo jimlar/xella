@@ -99,7 +99,7 @@ public class MessageHeader {
 	    toReturn += ", ";
 	}
 
-	toReturn += "payload=" + byteToHex(payloadDescriptor)
+	toReturn += "payload=0x" + byteToHex(payloadDescriptor)
 	    + ", ttl=" + ttl
 	    + ", hops=" + hops
 	    + ", length=" + payloadLength;
@@ -108,7 +108,7 @@ public class MessageHeader {
     }
 
     private String byteToHex(int b) {
-	String ret = Integer.toHexString(((int)((char) b)) & 0xff);
+	String ret = Integer.toHexString(b & 0xff);
 	if (ret.length() < 2) {
 	    return "0" + ret; 
 	} else {

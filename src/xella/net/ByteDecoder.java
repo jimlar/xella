@@ -14,7 +14,8 @@ import java.util.*;
 public class ByteDecoder {
 
     public static int decode8Bit(ByteBuffer buffer) {
-	return buffer.get();
+	int b = buffer.get();
+	return b < 0 ? b + 256 : b;
     }
 
     public static int decode16Bit(ByteBuffer buffer) {
