@@ -29,8 +29,8 @@ class MessageDecoder {
  	case GnutellaConstants.PAYLOAD_PONG:
  	    return decodePongMessage(messageHeader);
 
-// 	case GnutellaConstants.PAYLOAD_PUSH:
-// 	    break;
+ 	case GnutellaConstants.PAYLOAD_PUSH:
+	    return decodePushMessage(messageHeader);
 
  	case GnutellaConstants.PAYLOAD_QUERY:
 	    return decodeQueryMessage(messageHeader);
@@ -75,6 +75,17 @@ class MessageDecoder {
 	return new PongMessage(messageHeader, host, port, numShared, kilobytesShared);
     }
 
+    private PushMessage decodePushMessage(MessageHeader messageHeader)
+	throws IOException
+    {
+	byte serventId[] = readServentIdentifier();
+	int fileIndex = read32Bit();
+	String host = readIPNumber();
+	int port = read16Bit();
+
+	return new PushMessage(messageHeader, serventId, host, port, fileIndex);
+    }
+
     private QueryMessage decodeQueryMessage(MessageHeader messageHeader)
 	throws IOException
     {
@@ -115,10 +126,7 @@ class MessageDecoder {
 	    queryHits.add(new QueryHit(fileIndex, fileSize, fileName));
 	}
 
-	byte serventId[] = new byte[16];
-	if (in.read(serventId) != 16) {
-	    throw new IOException("error reading servent id");
-	}
+	byte serventId[] = readServentIdentifier();
 
 	return new QueryResponseMessage(messageHeader, 
 					serventId, 
@@ -165,6 +173,17 @@ class MessageDecoder {
 	    | (buffer[1] & 0xff) << 8 
 	    | (buffer[2] & 0xff) << 16 
 	    | (buffer[3] & 0xff) << 24;	
+    }
+
+    private byte[] readServentIdentifier() 
+	throws IOException
+    {
+	byte serventId[] = new byte[16];
+	if (in.read(serventId) != 16) {
+	    throw new IOException("EOF while reading servent id");
+	}
+	
+	return serventId;
     }
 
     private String readIPNumber() 

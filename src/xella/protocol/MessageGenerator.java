@@ -60,9 +60,21 @@ class MessageGenerator {
     }
 
     public void sendQueryHit() throws IOException {
+	throw new IOException("not implemented");
     }
 
-    public void sendPush() throws IOException {
+    public void sendPush(byte serventId[], int fileIndex, String hostIP, int port) 
+	throws IOException 
+    {
+	sendDescriptorHeader(GnutellaConstants.PAYLOAD_PUSH,
+			     GnutellaConstants.TTL, 
+			     0, 
+			     26);
+
+	writeServentIdentifier(serventId);
+	write32Bit(fileIndex);
+	writeIPNumber(hostIP);
+	write16Bit(port);
     }
 
     private void sendDescriptorHeader(int payloadDescriptor,
@@ -148,5 +160,9 @@ class MessageGenerator {
     private void writeAsciiString(String str) throws IOException {
 	byte bytes[] = str.getBytes("ascii");
 	out.write(bytes);
+    }
+
+    private void writeServentIdentifier(byte serventId[]) throws IOException {
+	out.write(serventId);
     }
 }
