@@ -11,58 +11,52 @@ import xella.net.*;
  *
  */
 
-public class Xella {
+public class Xella implements MessageListener {
 
-    public static void main(String args[]) throws Exception {
+    private GnutellaEngine engine;
 
-	ServerSocket serv = new ServerSocket(6346);
-	Router router = new Router();
-	    
-	Socket socket = serv.accept();
-	
- 	//Socket socket = new Socket("192.168.1.1", 2662);
- 	//Socket socket = new Socket("gnutellahosts.com", 6346);
+    public Xella() throws Exception {
+	this.engine = new GnutellaEngine(20, 6346);
+	engine.start();
+	engine.addMessageListener(this);
+	engine.addHost("127.0.0.1", 2944);
+	engine.addHost("gnutellahosts.com", 6346);
+	engine.addHost("router.limewire.com", 6346);
+	engine.addHost("gnutella.hostscache.com", 6346);
+    }
 
-	GnutellaConnection con = new GnutellaConnection(router, socket, false);
-	Mongo mongo = new Mongo(con);
+    public void receivedPing(PingMessage message) {
 
-	while (true) {
-
-	    //router.route(MessageFactory.getInstance().createQueryMessage(0, "cult"));
-	    //router.route(MessageFactory.getInstance().createPingMessage());
-	    Thread.sleep(10000);
+	System.out.println("Got: " + message);
+	try {
+	    /* Pong the pings */
+	    PongMessage pongMessage 
+		= MessageFactory.getInstance().createPongMessage(message,
+								 "192.168.1.31", 
+								 6346, 
+								 12, 
+								 1234567890);
+	    engine.send(pongMessage);	
+	} catch (IOException e) {
+	    e.printStackTrace();
 	}
     }
 
-    private static class Mongo extends Thread {
-	private GnutellaConnection con;
+    public void receivedPong(PongMessage message) {
+	System.out.println("Got: " + message);
+    }
+    public void receivedPush(PushMessage message) {
+	System.out.println("Got: " + message);
+    }
+    public void receivedQuery(QueryMessage message) {
+	System.out.println("Got: " + message);
+    }
+    public void receivedQueryResponse(QueryResponseMessage message) {
+	System.out.println("Got: " + message);
+    }
 
-	public Mongo(GnutellaConnection con) {
-	    this.con = con;
-	    this.start();
-	}
 
-	public void run() {
-	    try {
-		while (true) {
-		    Message m = con.receiveNextMessage();
-		    //System.out.println("Got: " + m);	    
-		    
-		    if (m instanceof PingMessage) {
-			PongMessage message 
-			    = MessageFactory.getInstance().createPongMessage((PingMessage) m, 
-									     "192.168.1.31", 
-									     6346, 
-									     12, 
-									     1234567890);
-			con.getRouter().route(message);
-		    }
-
-		    con.getRouter().route(m);
-		}	
-	    } catch (Exception e) {
-		e.printStackTrace();
-	    }
-	}
+    public static void main(String args[]) throws Exception {
+	Xella xella = new Xella();
     }
 }

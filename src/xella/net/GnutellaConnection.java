@@ -6,20 +6,21 @@ import java.net.*;
 
 public class GnutellaConnection {
 
-    private Router router;
+    private GnutellaEngine engine;
     private Socket socket;
     private GnutellaOutputStream out;
     private GnutellaInputStream in;
 
     private MessageDecoder messageDecoder;
+    private MessageReader reader;
 
     /**
      * Connect as a client
      */
-    public GnutellaConnection(Router router, String host, int port) 
+    public GnutellaConnection(GnutellaEngine engine, String host, int port) 
 	throws IOException
     {
-	this(router, new Socket(host, port), true);
+	this(engine, new Socket(host, port), true);
     }
 
     /**
@@ -29,10 +30,10 @@ public class GnutellaConnection {
      *
      */
     
-    public GnutellaConnection(Router router, Socket socket, boolean isClient) 
+    public GnutellaConnection(GnutellaEngine engine, Socket socket, boolean isClient) 
 	throws IOException 
     {
-	this.router = router;
+	this.engine = engine;
 	this.socket = socket;
 	this.out = new GnutellaOutputStream(socket.getOutputStream());
 	this.in = new GnutellaInputStream(socket.getInputStream());
@@ -44,25 +45,26 @@ public class GnutellaConnection {
 	}
 
 	this.messageDecoder = new MessageDecoder(this);
-	router.addConnection(this);
+	engine.getRouter().addConnection(this);
+
+	reader = new MessageReader();
+	reader.start();
+
+	/* Always start out with a ping */
+	send(MessageFactory.getInstance().createPingMessage());
     }
 
     void send(Message message) throws IOException {
 	message.send(out);
     }
 
-    public Message receiveNextMessage() throws IOException {
-	Message message = messageDecoder.decodeNextMessage();
-	router.registerReceivedMessage(message);
-	return message;
-    }
-
-    public Router getRouter() {
-	return this.router;
-    }
-
     GnutellaInputStream getInputStream() {
 	return this.in;
+    }
+
+    private void receiveNextMessage() throws IOException {
+	Message message = messageDecoder.decodeNextMessage();
+	engine.registerReceivedMessage(message);
     }
 
     private void doClientHandshake() 
@@ -109,5 +111,18 @@ public class GnutellaConnection {
 	}
 
 	return buffer.toString();
+    }
+
+    private class MessageReader extends Thread {	
+	public void run() {
+	    try {
+		while (true) {
+		    receiveNextMessage();
+		}
+	    } catch (IOException e) {
+		System.out.println("Error reading next message, should close connection");
+		e.printStackTrace();
+	    }
+	}
     }
 }

@@ -23,7 +23,23 @@ public class PongMessage extends Message {
 	this.numShared = numShared;
 	this.kilobytesShared = kilobytesShared;
     }
+
+    public String getHost() {
+	return host;
+    }
     
+    public int getPort() {
+	return port;
+    }
+
+    public int getFilesShared() {
+	return numShared;
+    }
+
+    public int getKilobytesShared() {
+	return kilobytesShared;
+    }
+
     public void send(GnutellaOutputStream out) throws IOException {
 	getHeader().send(out);
 	out.write16Bit(port);

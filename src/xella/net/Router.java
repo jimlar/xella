@@ -14,7 +14,8 @@ import xella.net.*;
 
 public class Router {
 
-    private RoutingPolicy policy;
+    private int ttlDropLimit;
+    private int messageHistorySize;
     private Set connections;
 
     /** Cache to remember ping routes */
@@ -27,21 +28,18 @@ public class Router {
     private MessageCache queryResponseCache;
 
     /**
-     * Create a router with default routing policy
+     * Create a new router
+     * @param ttlDropLimit messages with ttl higher than this will be dropped
+     * @param messageHistorySize how many messsages, per type, to remember routes for
+     *
      */
-    public Router() {
-	this(new RoutingPolicy());
-    }
-    
-    /**
-     * Create a new router with custom routing policy
-     */
-    public Router(RoutingPolicy policy) {
-	this.policy = policy;
+    public Router(int ttlDropLimit, int messageHistorySize) {
+	this.ttlDropLimit = ttlDropLimit;
+	this.messageHistorySize = messageHistorySize;
 	this.connections = Collections.synchronizedSet(new HashSet());
-	this.pingCache = new MessageCache(policy.getRouterMessageHistorySize());
-	this.queryCache = new MessageCache(policy.getRouterMessageHistorySize());
-	this.queryResponseCache = new MessageCache(policy.getRouterMessageHistorySize());
+	this.pingCache = new MessageCache(messageHistorySize);
+	this.queryCache = new MessageCache(messageHistorySize);
+	this.queryResponseCache = new MessageCache(messageHistorySize);
     }
     
     synchronized void addConnection(GnutellaConnection connection) {
@@ -81,8 +79,8 @@ public class Router {
 	}
 
 	/* check policy for unwanted messages */
-	if (!isCompliantWithPolicy(message)) {
-	    System.out.println("dropping message (policy violated): " + message);
+	if (message.getTTL() > ttlDropLimit) {
+	    System.out.println("dropping message (ttl too high): " + message);
 	    message.drop();
 	    return;
 	}
@@ -136,14 +134,6 @@ public class Router {
     private void routeQueryResponse(QueryResponseMessage message) throws IOException {
 	queryResponseCache.add(message);
 	routeBack(message, queryCache);
-    }
-
-
-    /**
-     * Check policy and return true if its ok to proceed with this message
-     */
-    private boolean isCompliantWithPolicy(Message message) {
-	return (message.getTTL() <= policy.getMaxTTL());
     }
 
     /**
