@@ -24,7 +24,9 @@ public class GnutellaEngine {
      * @param numberOfConnections the number of connections to keep up
      * @param port the port for incoming connections
      */
-    public GnutellaEngine(int minConnections, int maxConnections, int port) {
+    public GnutellaEngine(int minConnections, int maxConnections, int port) 
+	throws IOException
+    {
 	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
 	this.port = port;
 	this.router = new Router(10, 2000, this.connectionGroup);

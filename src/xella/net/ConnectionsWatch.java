@@ -42,17 +42,27 @@ class ConnectionsWatch extends Thread implements MessageListener {
 
 	    while (connectionGroup.isSmallerThanMinSize()) {
 		GnutellaConnection connection = getNewConnection();
+		
 		if (connection != null) {
-		    connectionGroup.addConnection(connection);
+		    try {
+			connectionGroup.addConnection(connection);
+		    } catch (IOException e) {
+			System.out.println("cant add connection to group: " + e);
+			connection.disconnect(e);
+		    }
 		} else {
 		    break;
 		}
 	    }
 
-	    Iterator iter = connectionGroup.iterator();
-	    while (iter.hasNext()) {
-		GnutellaConnection con = (GnutellaConnection) iter.next();
-		con.pumpConnection();
+	    try {
+		Iterator iter = connectionGroup.getReadyConnections().iterator();
+		while (iter.hasNext()) {
+		    GnutellaConnection con = (GnutellaConnection) iter.next();
+		    con.pumpConnection();
+		}
+	    } catch (IOException e) {
+		System.out.println("cant fetch ready connections: " + e);
 	    }
 	}
     }

@@ -36,15 +36,15 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     public XellaDemo() throws IOException {
         initComponents();
 	updateStatistics();
-        this.engine = new GnutellaEngine(1, 1, 6346);
+        this.engine = new GnutellaEngine(20, 30, 6346);
 	engine.addMessageListener(this);
 	engine.addConnectionListener(this);
 	engine.start();
 
-	engine.addHost("127.0.0.1", 2944);
-// 	engine.addHost("gnutellahosts.com", 6346);
-// 	engine.addHost("router.limewire.com", 6346);
-//         engine.addHost("gnutella.hostscache.com", 6346);
+	//engine.addHost("127.0.0.1", 2944);
+ 	engine.addHost("gnutellahosts.com", 6346);
+ 	engine.addHost("router.limewire.com", 6346);
+	engine.addHost("gnutella.hostscache.com", 6346);
     }
 
     /** This method is called from within the constructor to
@@ -272,6 +272,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 
     
     public void receivedPing(PingMessage message) {
+	System.out.println("Got: " + message);
 	numPings++;
 	updateStatistics();
 	try {
@@ -288,10 +289,12 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 	}
     }
 
-    public void receivedPong(PongMessage message) {numPongs++; updateStatistics();}
-    public void receivedPush(PushMessage message) {numPushes++; updateStatistics();}
-    public void receivedQuery(QueryMessage message) {numQueries++; updateStatistics();}
+
+    public void receivedPong(PongMessage message) {System.out.println("Got: " + message);numPongs++; updateStatistics();}
+    public void receivedPush(PushMessage message) {System.out.println("Got: " + message);numPushes++; updateStatistics();}
+    public void receivedQuery(QueryMessage message) {System.out.println("Got: " + message);numQueries++; updateStatistics();}
     public void receivedQueryResponse(QueryResponseMessage message) {
+	System.out.println("Got: " + message);
 	numQueryResponses++; 
 	updateStatistics();
         if (message.isResponseFor(activeQuery)) {
