@@ -50,4 +50,21 @@ public class QueryMessage extends Message {
     public String toString() {
 	return "QueryMessage: query=" + searchString + ", minSpeed=" + minSpeed;
     }
+
+    public boolean equals(Object o) {
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	QueryMessage other = (QueryMessage) o;
+	return this.getHeader().equals(other.getHeader())
+	    && this.searchString.equals(other.searchString)
+	    && this.minSpeed == other.minSpeed;
+    }
+
+    public int hashCode() {
+	return getHeader().hashCode()
+	    ^ searchString.hashCode()
+	    ^ minSpeed;
+    }
 }

@@ -9,6 +9,9 @@ import java.util.*;
 
 class GnutellaConnection {
 
+    public static final String CONNECT_MSG = "GNUTELLA CONNECT/0.4";
+    public static final String CONNECT_OK_REPLY = "GNUTELLA OK";
+    
     private static final int TIMEOUT_MS = 1000 * 30;
     private static final int SENDBUFFER_CLOSE_LEVEL = 200;
     private static final int MAX_MESSAGESIZE = 65535;
@@ -297,15 +300,15 @@ class GnutellaConnection {
 	throws IOException
     {
 	/* Send connect string and initiate readback */
-	outputBuffer.limit(GnutellaConstants.CONNECT_MSG.length() + 2);
+	outputBuffer.limit(CONNECT_MSG.length() + 2);
 	outputBuffer.rewind();
-	outputBuffer.put(ByteEncoder.encodeAsciiString(GnutellaConstants.CONNECT_MSG + "\n\n"));
+	outputBuffer.put(ByteEncoder.encodeAsciiString(CONNECT_MSG + "\n\n"));
 	outputBuffer.rewind();
 	socketChannel.write(outputBuffer);
 
 	log("handshake sent, reading response...");
 
-	inputBuffer.limit(GnutellaConstants.CONNECT_OK_REPLY.length() + 2);
+	inputBuffer.limit(CONNECT_OK_REPLY.length() + 2);
 	inputBuffer.rewind();
 	socketChannel.read(inputBuffer);
 
@@ -322,7 +325,7 @@ class GnutellaConnection {
 	    String reply = ByteDecoder.decodeAsciiString(inputBuffer, 
 							 inputBuffer.limit());
 	    
-	    if (!reply.equalsIgnoreCase(GnutellaConstants.CONNECT_OK_REPLY + "\n\n")) {
+	    if (!reply.equalsIgnoreCase(CONNECT_OK_REPLY + "\n\n")) {
 		throw new IOException("hanshaking error (reply was '" + reply + "')");
 	    }
 	    log("handshake ok!");
@@ -335,7 +338,7 @@ class GnutellaConnection {
     private boolean startServerHandshake() 
 	throws IOException
     {
-	String expectedString = GnutellaConstants.CONNECT_MSG + "\n\n";
+	String expectedString = CONNECT_MSG + "\n\n";
 
 	/* initiate read request */
 	inputBuffer.limit(expectedString.length());
@@ -355,13 +358,13 @@ class GnutellaConnection {
 	    byte strBytes[] = new byte[inputBuffer.limit()];
 	    String message = ByteDecoder.decodeAsciiString(strBytes);
 	    
-	    String expectedString = GnutellaConstants.CONNECT_MSG + "\n\n";
+	    String expectedString = CONNECT_MSG + "\n\n";
 	    if (!message.equalsIgnoreCase(expectedString)) {
 		throw new IOException("hanshaking error (connect message was '" + message + "')");
 	    }
 
 	    inputBuffer.limit(0);
-	    String toSend = GnutellaConstants.CONNECT_OK_REPLY + "\n\n";
+	    String toSend = CONNECT_OK_REPLY + "\n\n";
 	
 	    /* Send connect reply string */
 	    outputBuffer.limit(toSend.length());

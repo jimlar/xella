@@ -3,6 +3,7 @@ package xella.net;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class PushMessage extends Message {
 
@@ -49,5 +50,37 @@ public class PushMessage extends Message {
 	return "PushMessage: host=" + hostIP
 	    + ", port=" + port
 	    + ", fileIndex=" + fileIndex;
+    }
+
+    public boolean equals(Object o) {
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	PushMessage other = (PushMessage) o;
+	return this.getHeader().equals(other.getHeader())
+	    && this.hostIP.equals(other.hostIP)
+	    && this.port == other.port
+	    && this.fileIndex == other.fileIndex
+	    && Arrays.equals(this.serventId, other.serventId);
+    }
+
+    public int hashCode() {
+
+	int serventHashCode = 0;
+	for (int i = 0; i < serventId.length; i += 4) {
+	    int value = serventId[i] 
+		+ serventId[i + 1] << 8
+		+ serventId[i + 2] << 16
+		+ serventId[i + 3] << 24;
+	    
+	    serventHashCode ^= value;
+	}
+
+	return getHeader().hashCode()
+	    ^ hostIP.hashCode()
+	    ^ port
+	    ^ fileIndex
+	    ^ serventHashCode;
     }
 }

@@ -24,4 +24,17 @@ public class UnsupportedMessage extends Message {
     public String toString() {
 	return "UnsupportedMessage: " + getHeader().toString();
     }
+
+    public boolean equals(Object o) {
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	UnsupportedMessage other = (UnsupportedMessage) o;
+	return this.getHeader().equals(other.getHeader());
+    }
+
+    public int hashCode() {
+	return getHeader().hashCode();
+    }
 }

@@ -101,4 +101,26 @@ public class MessageHeader {
 	    return ret;
 	}
     }
+
+    public boolean equals(Object o) {
+
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	MessageHeader mh = (MessageHeader) o;
+	return mh.messageId.equals(this.messageId)
+	    && mh.payloadDescriptor == this.payloadDescriptor
+	    && mh.ttl == this.ttl
+	    && mh.hops == this.hops
+	    && mh.payloadLength == this.payloadLength;
+    }
+
+    public int hashCode() {
+	return messageId.hashCode()
+	    ^ payloadDescriptor
+	    ^ ttl
+	    ^ hops
+	    ^ payloadLength;
+    }
 }

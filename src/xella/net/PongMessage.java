@@ -66,4 +66,25 @@ public class PongMessage extends Message {
 	    + ", numShared=" + numShared
 	    + ", kilobytesShared=" + kilobytesShared;
     }
+
+    public boolean equals(Object o) {
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	PongMessage other = (PongMessage) o;
+	return this.getHeader().equals(other.getHeader())
+	    && this.host.equals(other.host)
+	    && this.port == other.port
+	    && this.numShared == other.numShared
+	    && this.kilobytesShared == other.kilobytesShared;
+    }
+
+    public int hashCode() {
+	return getHeader().hashCode()
+	    ^ host.hashCode()
+	    ^ port
+	    ^ numShared
+	    ^ kilobytesShared;
+    }
 }

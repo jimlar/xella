@@ -160,4 +160,50 @@ public class QueryResponseMessage extends Message {
 
 	return toReturn;
     }
+
+    public boolean equals(Object o) {
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	QueryResponseMessage other = (QueryResponseMessage) o;
+	return this.getHeader().equals(other.getHeader())
+	    && Arrays.equals(this.serventId, other.serventId)
+	    && this.hostIP.equals(other.hostIP)
+	    && this.port == other.port
+	    && this.hostSpeed == other.hostSpeed
+	    && this.queryHits.equals(other.queryHits)
+	    && Arrays.equals(this.extendedData, other.extendedData);
+    }
+
+    public int hashCode() {
+
+	int serventHashCode = 0;
+	for (int i = 0; i < serventId.length; i += 4) {
+	    int value = serventId[i] 
+		+ serventId[i + 1] << 8
+		+ serventId[i + 2] << 16
+		+ serventId[i + 3] << 24;
+	    
+	    serventHashCode ^= value;
+	}
+	
+	int extendedDataHashCode = 0;
+	for (int i = 0; i < extendedData.length; i += 4) {
+	    int value = extendedData[i] 
+		+ extendedData[i + 1] << 8
+		+ extendedData[i + 2] << 16
+		+ extendedData[i + 3] << 24;
+	    
+	    extendedDataHashCode ^= value;
+	}
+
+	return getHeader().hashCode()
+	    ^ hostIP.hashCode()
+	    ^ port
+	    ^ hostSpeed
+	    ^ queryHits.hashCode()
+	    ^ serventHashCode
+	    ^ extendedDataHashCode;
+    }
 }

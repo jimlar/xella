@@ -3,12 +3,34 @@ package xella.net;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class MessageId {
 
     private static long startTime = System.currentTimeMillis();
     private static long nextMessageId = 1;
     private byte idBytes[];
+
+    /**
+     * These do only have to be unique to our host so this will do
+     * I think
+     */
+
+    private static synchronized byte[] getNewMessageId() {
+	
+	long messageId = nextMessageId++;
+	byte toReturn[] = new byte[16];
+
+	for (int i = 0; i < 8; i++) {
+	    toReturn[i] = (byte) ((startTime >> (i * 8)) & 0xff);
+	}
+
+	for (int i = 8; i < 16; i++) {
+	    toReturn[i] = (byte) ((messageId >> ((i - 8) * 8)) & 0xff);
+	}
+
+	return toReturn;
+    }
 
     MessageId() {
 	this(getNewMessageId());
@@ -47,22 +69,6 @@ public class MessageId {
 	return toReturn;
     }
 
-    public boolean equals(Object other) {
-	if (other == null) {
-	    return false;
-	}
-	if (!other.getClass().equals(this.getClass())) {
-	    return false;
-	}		
-        byte otherIdBytes[] = ((MessageId) other).idBytes;
-        for (int i = 0; i < idBytes.length; i++) {
-            if (idBytes[i] != otherIdBytes[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     private String byteToHex(int b) {
 	String ret = Integer.toHexString(b & 0xff);
 	if (ret.length() < 2) {
@@ -72,24 +78,27 @@ public class MessageId {
 	}
     }
 
-    /**
-     * These do only have to be unique to our host so this will do
-     * I think
-     */
-
-    private static synchronized byte[] getNewMessageId() {
-	
-	long messageId = nextMessageId++;
-	byte toReturn[] = new byte[16];
-
-	for (int i = 0; i < 8; i++) {
-	    toReturn[i] = (byte) ((startTime >> (i * 8)) & 0xff);
+    public boolean equals(Object other) {
+	if (other == null) {
+	    return false;
 	}
+	if (!other.getClass().equals(this.getClass())) {
+	    return false;
+	}		
+        byte otherIdBytes[] = ((MessageId) other).idBytes;
+	return Arrays.equals(this.idBytes, otherIdBytes);
+    }
 
-	for (int i = 8; i < 16; i++) {
-	    toReturn[i] = (byte) ((messageId >> ((i - 8) * 8)) & 0xff);
+    public int hashCode() {	
+	int toReturn = 0;
+	for (int i = 0; i < idBytes.length; i += 4) {
+	    int value = idBytes[i] 
+		+ idBytes[i + 1] << 8
+		+ idBytes[i + 2] << 16
+		+ idBytes[i + 3] << 24;
+	    
+	    toReturn ^= value;
 	}
-
 	return toReturn;
     }
 }

@@ -11,6 +11,9 @@ import java.util.*;
  */
 
 public class MessageFactory {
+
+    public static final int TTL = 7;
+    public static final int PONG_BODY_LENGTH = 14;
     
     private static MessageFactory instance;
 
@@ -27,8 +30,8 @@ public class MessageFactory {
     public PingMessage createPingMessage() {
 	
 	MessageHeader header = new MessageHeader(new MessageId(),
-						 GnutellaConstants.PAYLOAD_PING, 
-						 GnutellaConstants.TTL, 
+						 Message.PAYLOAD_PING, 
+						 TTL, 
 						 0, 
 						 0);
 	return new PingMessage(null, header);
@@ -41,10 +44,10 @@ public class MessageFactory {
 					 int kilobytesShared) {
 
 	MessageHeader header = new MessageHeader(replyTo.getMessageId(), 
-						 GnutellaConstants.PAYLOAD_PONG, 
-						 GnutellaConstants.TTL, 
+						 Message.PAYLOAD_PONG, 
+						 TTL, 
 						 0, 
-						 GnutellaConstants.PONG_BODY_LENGTH);
+						 PONG_BODY_LENGTH);
 	return new PongMessage(null,
 			       header,
 			       hostIP,
@@ -59,8 +62,8 @@ public class MessageFactory {
 	int size = 2 + searchString.length() + 1;
 
 	MessageHeader header = new MessageHeader(new MessageId(),
-						 GnutellaConstants.PAYLOAD_QUERY, 
-						 GnutellaConstants.TTL, 
+						 Message.PAYLOAD_QUERY, 
+						 TTL, 
 						 0,
 						 size);
 	
@@ -85,8 +88,8 @@ public class MessageFactory {
 	}
 
 	MessageHeader header = new MessageHeader(replyTo.getMessageId(),
-						 GnutellaConstants.PAYLOAD_QUERY_HIT, 
-						 GnutellaConstants.TTL, 
+						 Message.PAYLOAD_QUERY_HIT, 
+						 TTL, 
 						 0,
 						 bodySize);
 	
@@ -107,8 +110,8 @@ public class MessageFactory {
 					 int port) {
 
 	MessageHeader header = new MessageHeader(replyTo.getMessageId(),
-						 GnutellaConstants.PAYLOAD_PUSH,
-						 GnutellaConstants.TTL, 
+						 Message.PAYLOAD_PUSH,
+						 TTL, 
 						 0, 
 						 26);
 

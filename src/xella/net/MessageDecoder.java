@@ -21,19 +21,19 @@ class MessageDecoder {
 	
 	switch (messageHeader.getMessageType()) {
 
-	case GnutellaConstants.PAYLOAD_PING:
+	case Message.PAYLOAD_PING:
 	    return PingMessage.readFrom(buffer, messageHeader, connection);
 
- 	case GnutellaConstants.PAYLOAD_PONG:
+ 	case Message.PAYLOAD_PONG:
 	    return PongMessage.readFrom(buffer, messageHeader, connection);
 
- 	case GnutellaConstants.PAYLOAD_PUSH:
+ 	case Message.PAYLOAD_PUSH:
 	    return PushMessage.readFrom(buffer, messageHeader, connection);
 
- 	case GnutellaConstants.PAYLOAD_QUERY:
+ 	case Message.PAYLOAD_QUERY:
 	    return QueryMessage.readFrom(buffer, messageHeader, connection);
 
- 	case GnutellaConstants.PAYLOAD_QUERY_HIT:
+ 	case Message.PAYLOAD_QUERY_HIT:
 	    return QueryResponseMessage.readFrom(buffer, messageHeader, connection);
 
 	default:

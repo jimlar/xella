@@ -19,8 +19,21 @@ public class PingMessage extends Message {
 				       GnutellaConnection connection) {
 	return new PingMessage(connection, header);
     }
-
+    
     public String toString() {
 	return "PingMessage";
+    }
+
+    public boolean equals(Object o) {
+	if (o == null || !o.getClass().equals(this.getClass())) {
+	    return false;
+	}
+	
+	PingMessage other = (PingMessage) o;
+	return this.getHeader().equals(other.getHeader());
+    }
+
+    public int hashCode() {
+	return getHeader().hashCode();
     }
 }
