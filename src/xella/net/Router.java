@@ -1,5 +1,5 @@
 
-package xella.router;
+package xella.net;
 
 import java.io.*;
 import java.util.*;
@@ -44,12 +44,22 @@ public class Router {
 	this.queryResponseCache = new MessageCache(policy.getRouterMessageHistorySize());
     }
     
-    public synchronized void addConnection(GnutellaConnection connection) {
+    synchronized void addConnection(GnutellaConnection connection) {
 	connections.add(connection);
     }    
 
-    public synchronized void removeConnection(GnutellaConnection connection) {
+    synchronized void removeConnection(GnutellaConnection connection) {
 	connections.remove(connection);
+    }
+
+    void registerReceivedMessage(Message message) {
+	if (message instanceof PingMessage) {
+	    pingCache.add(message);	    
+	} else if (message instanceof QueryMessage) {
+	    queryCache.add(message);
+	} else if (message instanceof QueryResponseMessage) {
+	    queryResponseCache.add(message);
+	}
     }
 
     /**
@@ -65,12 +75,14 @@ public class Router {
 	
 	/* drop message if it is too old */
 	if (message.getTTL() <= 0) {
+	    System.out.println("dropping message (ttl <= 0): " + message);
 	    message.drop();
 	    return;
 	}
 
 	/* check policy for unwanted messages */
 	if (!isCompliantWithPolicy(message)) {
+	    System.out.println("dropping message (policy violated): " + message);
 	    message.drop();
 	    return;
 	}
@@ -92,7 +104,6 @@ public class Router {
      * Ping is broadcasted
      */
     private void routePing(PingMessage message) throws IOException {
-	System.out.println("routing ping message");	
 	pingCache.add(message);
 	broadcast(message);
     }
@@ -101,7 +112,6 @@ public class Router {
      * Pong is routed back the same way the ping came
      */
     private void routePong(PongMessage message) throws IOException {
-	System.out.println("routing pong message");	
 	routeBack(message, pingCache);
     }
 
@@ -109,7 +119,6 @@ public class Router {
      * Pushes are routed back the same way the query response message came
      */
     private void routePush(PushMessage message) throws IOException {
-	System.out.println("routing push message");	
 	routeBack(message, queryResponseCache);
     }
 
@@ -117,7 +126,6 @@ public class Router {
      * Queries are broadcasted
      */
     private void routeQuery(QueryMessage message) throws IOException {
-	System.out.println("routing query message");
 	queryCache.add(message);
 	broadcast(message);
     }
@@ -126,7 +134,6 @@ public class Router {
      * Query responses are routed back the same way the query message came
      */
     private void routeQueryResponse(QueryResponseMessage message) throws IOException {
-	System.out.println("routing query response message");	
 	queryResponseCache.add(message);
 	routeBack(message, queryCache);
     }

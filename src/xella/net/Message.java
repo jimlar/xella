@@ -48,7 +48,6 @@ public abstract class Message {
      * Mark message as dropped
      */
     public void drop() {
-	System.out.println("Dropped message: " + this);
     }
 
     protected MessageHeader getHeader() {

@@ -65,7 +65,11 @@ public class GnutellaConnection {
     }
 
     public Message receiveNextMessage() throws IOException {
-	return messageDecoder.decodeNextMessage();
+	Message message = messageDecoder.decodeNextMessage();
+	if (router != null) {
+	    router.registerReceivedMessage(message);
+	}
+	return message;
     }
 
     public Router getRouter() {

@@ -1,5 +1,5 @@
 
-package xella.router;
+package xella.net;
 
 import java.util.*;
 
@@ -11,7 +11,7 @@ import xella.net.*;
  *
  */
 
-public class MessageCache {
+class MessageCache {
 
     private int maxMessages;
     private List messageFIFO;
@@ -24,11 +24,15 @@ public class MessageCache {
     }
 
     public synchronized void add(Message message) {
-	messagesByDescriptorId.put(message.getDescriptorId(), message);
-	messageFIFO.add(message);
-	if (messageFIFO.size() > maxMessages) {
-	    Message removedMessage = (Message) messageFIFO.remove(0);
-	    messagesByDescriptorId.remove(removedMessage.getDescriptorId());
+	Object o = messagesByDescriptorId.put(message.getDescriptorId(), message);
+
+	/* protect against duplicate entries in fifo */
+	if (o == null) {
+	    messageFIFO.add(message);
+	    if (messageFIFO.size() > maxMessages) {
+		Message removedMessage = (Message) messageFIFO.remove(0);
+		messagesByDescriptorId.remove(removedMessage.getDescriptorId());
+	    }
 	}
     }
 

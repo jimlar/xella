@@ -29,8 +29,8 @@ public class Xella {
 
 	while (true) {
 
-	    //con.send(MessageFactory.getInstance().createQueryMessage(0, "cult"));
-	    con.send(MessageFactory.getInstance().createPingMessage());
+	    //router.route(MessageFactory.getInstance().createQueryMessage(0, "cult"));
+	    //router.route(MessageFactory.getInstance().createPingMessage());
 	    Thread.sleep(10000);
 	}
     }
@@ -47,8 +47,8 @@ public class Xella {
 	    try {
 		while (true) {
 		    Message m = con.receiveNextMessage();
-		    System.out.println("Got: " + m);	    
-
+		    //System.out.println("Got: " + m);	    
+		    
 		    if (m instanceof PingMessage) {
 			PongMessage message 
 			    = MessageFactory.getInstance().createPongMessage((PingMessage) m, 
@@ -56,7 +56,7 @@ public class Xella {
 									     6346, 
 									     12, 
 									     1234567890);
-			con.send(message);
+			con.getRouter().route(message);
 		    }
 
 		    con.getRouter().route(m);
