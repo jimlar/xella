@@ -4,8 +4,6 @@ package xella.net;
 import java.io.*;
 import java.net.*;
 
-import xella.router.*;
-
 public class GnutellaConnection {
 
     private Router router;
@@ -15,22 +13,13 @@ public class GnutellaConnection {
 
     private MessageDecoder messageDecoder;
 
-    public GnutellaConnection(String host, int port) 
-	throws IOException
-    {
-	this(null, host, port);
-    }
-
+    /**
+     * Connect as a client
+     */
     public GnutellaConnection(Router router, String host, int port) 
 	throws IOException
     {
-	this(new Socket(host, port), true);
-    }
-
-    public GnutellaConnection(Socket socket, boolean isClient) 
-	throws IOException
-    {
-	this(null, socket, isClient);
+	this(router, new Socket(host, port), true);
     }
 
     /**
@@ -55,20 +44,16 @@ public class GnutellaConnection {
 	}
 
 	this.messageDecoder = new MessageDecoder(this);
-	if (router != null) {
-	    router.addConnection(this);
-	}
+	router.addConnection(this);
     }
 
-    public void send(Message message) throws IOException {
+    void send(Message message) throws IOException {
 	message.send(out);
     }
 
     public Message receiveNextMessage() throws IOException {
 	Message message = messageDecoder.decodeNextMessage();
-	if (router != null) {
-	    router.registerReceivedMessage(message);
-	}
+	router.registerReceivedMessage(message);
 	return message;
     }
 

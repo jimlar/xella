@@ -5,7 +5,6 @@ import java.io.*;
 import java.net.*;
 
 import xella.net.*;
-import xella.router.*;
 
 /**
  * The main class of xella
