@@ -56,11 +56,13 @@ class ConnectionGroup {
     {
 	selector.select();
 	Collection toReturn = new ArrayList();
-	Iterator selectedKeys = selector.selectedKeys().iterator();
-	while (selectedKeys.hasNext()) {
-	    SelectionKey key = (SelectionKey) selectedKeys.next();
+	Collection selectedKeys = selector.selectedKeys();
+	Iterator iter = selectedKeys.iterator();
+	while (iter.hasNext()) {
+	    SelectionKey key = (SelectionKey) iter.next();
 	    toReturn.add(key.attachment());
 	}	
+	selectedKeys.clear();
 	return toReturn;
     }
 
@@ -73,9 +75,11 @@ class ConnectionGroup {
     {
 	Collection toReturn = new ArrayList();
 	selector.selectNow();
-	Iterator selectedKeys = selector.selectedKeys().iterator();
-	while (selectedKeys.hasNext()) {
-	    SelectionKey key = (SelectionKey) selectedKeys.next();
+	
+	Collection selectedKeys = selector.selectedKeys();
+	Iterator iter = selectedKeys.iterator();
+	while (iter.hasNext()) {
+	    SelectionKey key = (SelectionKey) iter.next();
 	    GnutellaConnection connection = (GnutellaConnection) key.attachment();
 	    toReturn.add(connection);
 	    
@@ -97,7 +101,8 @@ class ConnectionGroup {
 	    }
 	    System.out.println(str);
 
-	}	
+	}
+	selectedKeys.clear();
 	return toReturn;
     }
 
