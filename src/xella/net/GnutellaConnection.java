@@ -144,6 +144,10 @@ class GnutellaConnection {
 	return socketChannel;
     }
 
+    int getConnectionNumber() {
+	return this.connectionNumber;
+    }
+    
     synchronized void increaseDroppedMessages() {
 	numMessagesDropped++;
 	sendStatusChange();
@@ -156,7 +160,7 @@ class GnutellaConnection {
      */
     synchronized void pumpConnection() {
 	
-	log("start pump, state=" + connectionState);
+	//log("start pump (state=" + connectionState + ")");
 
 	try {
 	    doReadWrite();
@@ -201,8 +205,6 @@ class GnutellaConnection {
 		break;
 	    }
 
-	    doReadWrite();
-
 	} catch (Exception e) {
 	    int state = connectionState;
 	    disconnect(e);
@@ -230,19 +232,24 @@ class GnutellaConnection {
 	    }
 	}
 
-	log("end pump!");
+	//log("end pump!");
     }
 
     private void doReadWrite() throws IOException {
 	
 	/* Write if there are bytes to write */
 	if (outputBuffer.hasRemaining()) {
-	    socketChannel.write(outputBuffer);
+	    int numWritten = socketChannel.write(outputBuffer);
+	    //log("wrote " + numWritten + " bytes");
 	} 
 	
 	/* Read if there are bytes to read */
 	if (inputBuffer.hasRemaining()) {
-	    socketChannel.read(inputBuffer);
+	    int numRead = socketChannel.read(inputBuffer);
+	    //log("read " + numRead + " bytes");
+	    if (numRead == -1) {
+		throw new IOException("stream closed by other party");
+	    }
 	} 
     }
 
@@ -250,27 +257,28 @@ class GnutellaConnection {
 
 	/* Connect us if we are a client connection */
 	if (isClient) {
-	    connectionInfo.setStatus("Connecting",
+	    connectionInfo.setStatus("Connecting...",
 				     numMessagesReceived,
 				     numMessagesSent,
 				     numMessagesDropped);	
 	    engine.connecting(connectionInfo);	    
 	    this.socketChannel = SocketChannel.open();
 	    this.socketChannel.configureBlocking(false);
+	    this.socketChannel.socket().setSoTimeout(TIMEOUT_MS);
+	    this.socketChannel.socket().setTcpNoDelay(false);
+	    this.socketChannel.socket().setKeepAlive(false);
 	    this.socketChannel.connect(new InetSocketAddress(host, port));
 	
 	} else {
 	    this.socketChannel.configureBlocking(false);
 	}
 	
-	this.socketChannel.socket().setSoTimeout(TIMEOUT_MS);
 	connectionState = STATE_CONNECTING;
     }
 
     private void finishConnect() throws IOException {
-	this.socketChannel.finishConnect();
-
-	if (this.socketChannel.isConnected()) {
+	
+	if (this.socketChannel.finishConnect()) {
 	    connectionState = STATE_HANDSHAKE_STEP1;
 	    sendStatusChange("Handshaking...");
 	}
@@ -322,11 +330,9 @@ class GnutellaConnection {
 	outputBuffer.rewind();
 	outputBuffer.put(ByteEncoder.encodeAsciiString(CONNECT_MSG + "\n\n"));
 	outputBuffer.rewind();
-	socketChannel.write(outputBuffer);
 
 	inputBuffer.limit(CONNECT_OK_REPLY.length() + 2);
 	inputBuffer.rewind();
-	socketChannel.read(inputBuffer);
 
 	return true;
     }
@@ -358,7 +364,6 @@ class GnutellaConnection {
 	/* initiate read request */
 	inputBuffer.limit(expectedString.length());
 	inputBuffer.rewind();
-	socketChannel.read(inputBuffer);
 
 	return true;
     }
@@ -388,7 +393,6 @@ class GnutellaConnection {
 	    outputBuffer.rewind();
 	    outputBuffer.put(ByteEncoder.encodeAsciiString(toSend));
 	    outputBuffer.rewind();
-	    socketChannel.write(outputBuffer);
 	    return true;
 	}
 	return false;
@@ -471,9 +475,6 @@ class GnutellaConnection {
 		outputBuffer.rewind();
 		numMessagesSent++;
 		
-		/* We might aswell do a write right now */
-		socketChannel.write(outputBuffer);
-
 		sendStatusChange();
 	    }
 	} 
@@ -492,6 +493,10 @@ class GnutellaConnection {
     }
 
     private void log(String message) {
-	System.out.println("[" + connectionNumber + "]: " + message);
+	//System.out.println("[" + connectionNumber + "]: " + message);
+    }
+
+    private void log(String message, ByteBuffer buffer) {
+	log(message + buffer);
     }
 }

@@ -76,7 +76,10 @@ class ConnectionGroup {
 	Iterator selectedKeys = selector.selectedKeys().iterator();
 	while (selectedKeys.hasNext()) {
 	    SelectionKey key = (SelectionKey) selectedKeys.next();
-	    String str = "Connection ready for ";
+	    GnutellaConnection connection = (GnutellaConnection) key.attachment();
+	    toReturn.add(connection);
+	    
+	    String str = "Connection " + connection.getConnectionNumber() + " is ready for ";
 	    if (key.isAcceptable()) {
 		str += "ACCEPT ";
 	    }
@@ -92,9 +95,8 @@ class ConnectionGroup {
 	    if (!key.isValid()) {
 		str += "(invalid key) ";
 	    }
-	    //    System.out.println(str);
+	    System.out.println(str);
 
-	    toReturn.add(key.attachment());
 	}	
 	return toReturn;
     }

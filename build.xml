@@ -36,4 +36,13 @@
     </java>
   </target>
 
+  <!-- start xella command line demo -->
+  <target name="cmddemo" depends="xella">
+    <java classname="xella.demo.CommandLineDemo"
+          classpath="${classpath}"
+          fork="true"
+          dir=".build">
+    </java>
+  </target>
+
 </project>
