@@ -9,6 +9,9 @@ package xella.protocol;
 
 class GnutellaConstants {
 
+    public static final String CONNECT_MSG = "GNUTELLA CONNECT/0.4";
+    public static final String CONNECT_OK_REPLY = "GNUTELLA OK";
+    
     public static final int PAYLOAD_PING = 0x00;
     public static final int PAYLOAD_PONG = 0x01;
     public static final int PAYLOAD_PUSH = 0x40;

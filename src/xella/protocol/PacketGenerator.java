@@ -36,10 +36,11 @@ public class PacketGenerator {
 	buffer[17] = (byte) ttl;
 	buffer[18] = (byte) hops;
 	
-	buffer[19] = (byte) ((payloadLength >> 6) & 0xff); 
-	buffer[20] = (byte) ((payloadLength >> 4) & 0xff); 
-	buffer[21] = (byte) ((payloadLength >> 2) & 0xff); 
-	buffer[22] = (byte) (payloadLength & 0xff); 
+	/* Little endian */
+	buffer[19] = (byte) (payloadLength); 
+	buffer[20] = (byte) (payloadLength >> 8);
+	buffer[21] = (byte) (payloadLength >> 16);
+	buffer[22] = (byte) (payloadLength >> 24);
 
 	out.write(buffer);
     }

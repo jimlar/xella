@@ -15,35 +15,23 @@ public class Xella {
 
     public static void main(String args[]) throws Exception {
 
-	Socket socket = new Socket("gnutellahosts.com", 6346);
-
-	System.out.print("Sending ping...");
-	OutputStream out = socket.getOutputStream();
-	PacketGenerator.sendPing(out);
-	out.flush();
-	System.out.println("ok!");
-
-	MongoThread m = new MongoThread(socket.getInputStream());
-    }
-
-    private static class MongoThread extends Thread {
+	ServerSocket serv = new ServerSocket(6346);
+	Socket sock = serv.accept();
 	
-	private InputStream in;
-
-	public MongoThread(InputStream in) {
-	    this.in = in;
-	    this.start();
+	GnutellaConnection con = new GnutellaConnection(sock, false);
+	while (true) {
+	    Packet p = con.getNextPacket();
+	    System.out.println("Got packet: " + p);	    
 	}
 
-	public void run() {
-	    while (true) {
-		try {
-		    Packet p = PacketDecoder.decodePacket(in);
-		    System.out.println("Got packet: " + p);
-		} catch (Exception e) {
-		    e.printStackTrace();
-		}
-	    }
-	}
+// 	Socket socket = new Socket("192.168.1.1", 2662);
+
+// 	System.out.print("Sending ping...");
+// 	OutputStream out = socket.getOutputStream();
+// 	PacketGenerator.sendPing(out);
+// 	out.flush();
+// 	System.out.println("ok!");
+
+// 	MongoThread m = new MongoThread(socket.getInputStream());
     }
 }
