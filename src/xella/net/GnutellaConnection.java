@@ -9,9 +9,9 @@ import java.util.*;
 
 class GnutellaConnection {
 
-    private static final int TIMEOUT = 1000 * 30;
+    private static final int TIMEOUT_MS = 1000 * 30;
     private static final int SENDBUFFER_CLOSE_LEVEL = 200;
-    private static final int MESSAGESIZE_CLOSE_LEVEL = 65535;
+    private static final int MAX_MESSAGESIZE = 65535;
 
     private static final int STATE_NEW = 0;
     private static final int STATE_CONNECTING = 1;
@@ -244,7 +244,7 @@ class GnutellaConnection {
 	}
 
 	this.socketChannel.configureBlocking(false);
-	this.socketChannel.socket().setSoTimeout(TIMEOUT);
+	this.socketChannel.socket().setSoTimeout(TIMEOUT_MS);
 	connectionState = STATE_CONNECTING;
     }
 
@@ -305,7 +305,7 @@ class GnutellaConnection {
 
 	currentInputBuffer = ByteBuffer.allocate(GnutellaConstants.CONNECT_OK_REPLY.length() + 2);
 	socketChannel.read(currentInputBuffer);
-	log("response read request sent");
+
 	return true;
     }
     
@@ -397,20 +397,19 @@ class GnutellaConnection {
 
 	if (currentInputBuffer == null) {
 	    currentInputBuffer = ByteBuffer.allocate(MessageHeader.SIZE);
-	    log("initiated header read");
+
 	} else {
 
 	    if (currentInputBuffer.hasRemaining()) {
 		socketChannel.read(currentInputBuffer);
 	    } else {
 		currentInputBuffer.rewind();
-		log("decoding header " + currentInputBuffer.remaining() + " bytes");
 		currentMessageHeader = MessageHeader.readFrom(currentInputBuffer);
 
 		currentInputBuffer.rewind();
 		byte debug[] = new byte[currentInputBuffer.remaining()];
 		currentInputBuffer.get(debug);
-		log("received message header: ", debug);
+		//log("received message header: ", debug);
 
 		currentInputBuffer = null;
 		connectionState = STATE_CONNECTED_RECEIVING_BODY;		
@@ -421,12 +420,11 @@ class GnutellaConnection {
     private void receiveNextMessage() throws IOException {
 
 	if (currentInputBuffer == null) {
-	    if (currentMessageHeader.getMessageBodySize() > MESSAGESIZE_CLOSE_LEVEL) {
+	    if (currentMessageHeader.getMessageBodySize() > MAX_MESSAGESIZE) {
 		throw new IOException("message too big (size = " 
 				      + currentMessageHeader.getMessageBodySize());
 	    }
 	    currentInputBuffer = ByteBuffer.allocate(currentMessageHeader.getMessageBodySize());
-	    log("initiated message body read");
 
 	} else {
 
@@ -435,19 +433,19 @@ class GnutellaConnection {
 	    } else {
 		currentInputBuffer.rewind();
 
-		log("decoding message body " + currentInputBuffer.remaining() + " bytes");
 		Message message = messageDecoder.decodeMessage(currentMessageHeader, currentInputBuffer);
+		log("Got message: " + message);
+
 		currentInputBuffer.rewind();
 		byte debug[] = new byte[currentInputBuffer.remaining()];
 		currentInputBuffer.get(debug);
-		log("received message body: ", debug);
+		//log("received message body: ", debug);
 
 
 		numMessagesReceived++;
 		currentInputBuffer = null;
 		connectionState = STATE_CONNECTED_RECEIVING_HEADER;		
 		engine.registerReceivedMessage(message);
-		log("message body done");
 	    }
 	}
     }
@@ -462,17 +460,16 @@ class GnutellaConnection {
 	    if (sendBuffer.size() > 0) {
 		Message message = (Message) sendBuffer.remove(0);
 		currentOutputBuffer = message.getByteBuffer();
-		log("sending message: " + message + ", bufferpos=" + currentOutputBuffer.position());
+		log("sending message: " + message);
 
 		currentOutputBuffer.rewind();
 		byte debug[] = new byte[currentOutputBuffer.remaining()];
 		currentOutputBuffer.get(debug);
-		log("sending message: ", debug);
+		//log("sending message: ", debug);
 		currentOutputBuffer.rewind();
 
 		socketChannel.write(currentOutputBuffer);
 		numMessagesSent++;
-		log("sent message (size=" + message.size() + ")");
 	    }
 	} 
     }

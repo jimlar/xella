@@ -1,10 +1,9 @@
 
 Things to do:
 -------------
-- Start using the async-i/o
-  - learn the async i/o api
-  - GnutellaConnection in progress
-    - need timeouts
+- The connections need timeouts
+
+- Use two permanent buffers instead of allocating all the time
 
 - I think I messed up the byte encodings, dump messages and check it out!
 

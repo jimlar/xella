@@ -272,7 +272,6 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 
     
     public void receivedPing(PingMessage message) {
-	System.out.println("Got: " + message);
 	numPings++;
 	updateStatistics();
 	try {
@@ -290,11 +289,10 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     }
 
 
-    public void receivedPong(PongMessage message) {System.out.println("Got: " + message);numPongs++; updateStatistics();}
-    public void receivedPush(PushMessage message) {System.out.println("Got: " + message);numPushes++; updateStatistics();}
-    public void receivedQuery(QueryMessage message) {System.out.println("Got: " + message);numQueries++; updateStatistics();}
+    public void receivedPong(PongMessage message) {numPongs++; updateStatistics();}
+    public void receivedPush(PushMessage message) {numPushes++; updateStatistics();}
+    public void receivedQuery(QueryMessage message) {numQueries++; updateStatistics();}
     public void receivedQueryResponse(QueryResponseMessage message) {
-	System.out.println("Got: " + message);
 	numQueryResponses++; 
 	updateStatistics();
         if (message.isResponseFor(activeQuery)) {
