@@ -17,22 +17,27 @@ public class GnutellaEngine {
     private Collection messageListeners;
     private ConnectionsWatch connectionsWatch;
     private int port;
+    private ServerSocketManager serverSocketManager;
 
     /**
      * @param numberOfConnections the number of connections to keep up
      * @param port the port for incoming connections
      */
-    public GnutellaEngine(int numberOfConnections, int port) {
-	this.connectionGroup = new ConnectionGroup(numberOfConnections);
+    public GnutellaEngine(int minConnections, int maxConnections, int port) {
+	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
 	this.port = port;
 	this.router = new Router(10, 1000, this.connectionGroup);
 	this.messageListeners = new ArrayList();
     }
 
-    public void start() {
+    public void start() throws IOException {
 	if (connectionsWatch == null) {
 	    connectionsWatch = new ConnectionsWatch(this, connectionGroup);
 	    addMessageListener(connectionsWatch);
+	}
+
+	if (serverSocketManager == null) {
+	    serverSocketManager = new ServerSocketManager(port, this);
 	}
     }
 
@@ -40,6 +45,10 @@ public class GnutellaEngine {
 	if (connectionsWatch != null) {
 	    connectionsWatch.shutdown();
 	    connectionsWatch = null;
+	}
+	if (serverSocketManager != null) {
+	    serverSocketManager.shutdown();
+	    serverSocketManager = null;
 	}
     }
 

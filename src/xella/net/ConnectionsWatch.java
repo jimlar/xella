@@ -5,6 +5,12 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+/**
+ * This is a watch thread that connects a new client connection if the
+ * connection groups has become too small
+ *
+ */
+
 class ConnectionsWatch extends Thread implements MessageListener {
 	
     private GnutellaEngine engine;
@@ -34,7 +40,7 @@ class ConnectionsWatch extends Thread implements MessageListener {
     public void run() {
 	while (!stopping) {
 
-	    if (connectionGroup.isSmallerThanWanted()) {
+	    if (connectionGroup.isSmallerThanMinSize()) {
 		try {
 		    GnutellaConnection connection = getNewConnection();
 		    if (connection != null) {

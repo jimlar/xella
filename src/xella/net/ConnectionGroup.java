@@ -10,10 +10,12 @@ import java.util.*;
 class ConnectionGroup {
 
     private Set connections;
-    private int wantedSize;
+    private int minSize;
+    private int maxSize;
 
-    public ConnectionGroup(int wantedSize) {
-	this.wantedSize = wantedSize;
+    public ConnectionGroup(int minSize, int maxSize) {
+	this.minSize = minSize;
+	this.maxSize = maxSize;
 	this.connections = new HashSet();	
     }
     
@@ -29,15 +31,11 @@ class ConnectionGroup {
 	return new ArrayList(connections).iterator();
     }
 
-    public synchronized int getWantedSize() {
-	return wantedSize;
+    public synchronized boolean isSmallerThanMinSize() {
+	return connections.size() < minSize;
     }
 
-    public synchronized int size() {
-	return connections.size();
-    }
-
-    public boolean isSmallerThanWanted() {
-	return size() < getWantedSize();
+    public synchronized boolean hasReachedMaxSize() {
+	return connections.size() >= maxSize;
     }
 }

@@ -4,4 +4,3 @@ Things to do:
 -------------
 - Start using the async-i/o
 - Implement download/upload/push
-- Implement server socket handling

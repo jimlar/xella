@@ -30,9 +30,7 @@ class GnutellaConnection {
     /**
      * Connect as a client
      */
-    GnutellaConnection(GnutellaEngine engine, String host, int port) 
-	throws IOException
-    {
+    GnutellaConnection(GnutellaEngine engine, String host, int port) {
 	this(engine, host, port, null, true);
     }
 
@@ -41,9 +39,7 @@ class GnutellaConnection {
      * (probably retrieved from a ServerSocket.accept())
      */
     
-    GnutellaConnection(GnutellaEngine engine, Socket socket) 
-	throws IOException
-    {
+    GnutellaConnection(GnutellaEngine engine, Socket socket) {
 	this(engine, null, -1, socket, false);
     }
 
@@ -51,9 +47,7 @@ class GnutellaConnection {
      * If socket param is null then host and port is used to open a client socket
      */
 
-    private GnutellaConnection(GnutellaEngine engine, String host, int port, Socket socket, boolean isClient) 
-	throws IOException
-    {
+    private GnutellaConnection(GnutellaEngine engine, String host, int port, Socket socket, boolean isClient) {
 	if (isClient == false && socket == null) {
 	    throw new IllegalArgumentException("need socket to operate in non client mode");
 	}

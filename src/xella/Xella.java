@@ -16,7 +16,7 @@ public class Xella implements MessageListener {
     private GnutellaEngine engine;
 
     public Xella() throws Exception {
-	this.engine = new GnutellaEngine(8, 6346);
+	this.engine = new GnutellaEngine(8, 20, 6346);
 	engine.start();
 	engine.addMessageListener(this);
 	engine.addHost("127.0.0.1", 2944);
