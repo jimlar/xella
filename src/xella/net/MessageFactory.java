@@ -13,8 +13,6 @@ import java.util.*;
 public class MessageFactory {
     
     private static MessageFactory instance;
-    private long startTime = System.currentTimeMillis();
-    private long nextMessageId = 1;
 
     public static MessageFactory getInstance() {
 	if (instance == null) {
@@ -28,7 +26,7 @@ public class MessageFactory {
 
     public PingMessage createPingMessage() {
 	
-	MessageHeader header = new MessageHeader(getNewDescriptorId(),
+	MessageHeader header = new MessageHeader(new MessageId(),
 						 GnutellaConstants.PAYLOAD_PING, 
 						 GnutellaConstants.TTL, 
 						 0, 
@@ -42,7 +40,7 @@ public class MessageFactory {
 					 int numShared, 
 					 int kilobytesShared) {
 
-	MessageHeader header = new MessageHeader(replyTo.getDescriptorId(), 
+	MessageHeader header = new MessageHeader(replyTo.getMessageId(), 
 						 GnutellaConstants.PAYLOAD_PONG, 
 						 GnutellaConstants.TTL, 
 						 0, 
@@ -60,7 +58,7 @@ public class MessageFactory {
 	/* minspeed is 16 bit and the string is null terminated */
 	int size = 2 + searchString.length() + 1;
 
-	MessageHeader header = new MessageHeader(getNewDescriptorId(),
+	MessageHeader header = new MessageHeader(new MessageId(),
 						 GnutellaConstants.PAYLOAD_QUERY, 
 						 GnutellaConstants.TTL, 
 						 0,
@@ -69,8 +67,37 @@ public class MessageFactory {
 	return new QueryMessage(null, header, searchString, minSpeed);
     }
 
-    public QueryResponseMessage createQueryResponseMessage() {
-	throw new RuntimeException("not implemented");
+    public QueryResponseMessage createQueryResponseMessage(QueryMessage replyTo,
+							   byte serventId[],
+							   String hostIP,
+							   int port,
+							   int hostSpeed,
+							   List queryHits) 
+    {	
+	/* two sizes before and after the resultset are fixed */
+	int bodySize = 11 + 16;
+	
+	/* Add resultset size */
+	Iterator iter = queryHits.iterator();
+	while (iter.hasNext()) {
+	    QueryHit hit = (QueryHit) iter.next();
+	    bodySize += hit.size();
+	}
+
+	MessageHeader header = new MessageHeader(replyTo.getMessageId(),
+						 GnutellaConstants.PAYLOAD_QUERY_HIT, 
+						 GnutellaConstants.TTL, 
+						 0,
+						 bodySize);
+	
+	return new QueryResponseMessage(null,
+					header, 
+					serventId,
+					hostIP, 
+					port, 
+					hostSpeed, 
+					queryHits,
+					null);
     }
 
     public PushMessage createPushMessage(QueryResponseMessage replyTo,
@@ -79,33 +106,12 @@ public class MessageFactory {
 					 String hostIP, 
 					 int port) {
 
-	MessageHeader header = new MessageHeader(replyTo.getDescriptorId(),
+	MessageHeader header = new MessageHeader(replyTo.getMessageId(),
 						 GnutellaConstants.PAYLOAD_PUSH,
 						 GnutellaConstants.TTL, 
 						 0, 
 						 26);
 
 	return new PushMessage(null, header, serventId, hostIP, port, fileIndex);
-    }
-
-    /**
-     * These do only have to be unique to our host so this will do
-     *
-     */
-
-    private byte[] getNewDescriptorId() {
-	
-	long messageId = nextMessageId++;
-	byte toReturn[] = new byte[16];
-
-	for (int i = 0; i < 8; i++) {
-	    toReturn[i] = (byte) ((startTime >> (i * 8)) & 0xff);
-	}
-
-	for (int i = 8; i < 16; i++) {
-	    toReturn[i] = (byte) ((messageId >> ((i - 8) * 8)) & 0xff);
-	}
-
-	return toReturn;
     }
 }

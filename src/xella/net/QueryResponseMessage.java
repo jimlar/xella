@@ -17,6 +17,7 @@ public class QueryResponseMessage extends Message {
     private int port;
     private int hostSpeed;
     private List queryHits;
+    private byte extendedData[];
 
     QueryResponseMessage(GnutellaConnection receivedFrom,
 			 MessageHeader header, 
@@ -24,7 +25,8 @@ public class QueryResponseMessage extends Message {
 			 String hostIP, 
 			 int port, 
 			 int hostSpeed, 
-			 List queryHits) 
+			 List queryHits,
+			 byte extendedData[]) 
     {
 	super(receivedFrom, header);
 	this.serventId = serventId;
@@ -32,6 +34,7 @@ public class QueryResponseMessage extends Message {
 	this.port = port;
 	this.hostSpeed = hostSpeed;
 	this.queryHits = queryHits;
+	this.extendedData = extendedData;
     }
 
     public String getHostIP() {
@@ -55,26 +58,39 @@ public class QueryResponseMessage extends Message {
 	if (message == null) {
 	    return false;
 	}
-        byte ourDescriptor[] = getDescriptorId();
-        byte otherDescriptor[] = message.getDescriptorId();
-        for (int i = 0; i < ourDescriptor.length; i++) {
-            if (ourDescriptor[i] != otherDescriptor[i]) {
-                return false;
-            }
-        }
-        return true;
+	
+	return message.getMessageId().equals(getMessageId());
     }
     
-    public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
-	buffer.put(getHeader().getByteBuffer());
-	buffer.rewind();
-	throw new RuntimeException("not implemented yet!");
+    public void writeTo(ByteBuffer buffer) {
+	getHeader().writeTo(buffer);
+
+	buffer.put(ByteEncoder.encode8Bit(queryHits.size()));
+
+	buffer.put(ByteEncoder.encode16Bit(port));
+	buffer.put(ByteEncoder.encodeIPNumber(hostIP));
+	buffer.put(ByteEncoder.encode32Bit(hostSpeed));
+
+	/* Put query hits */
+	Iterator iter = queryHits.iterator();
+	while (iter.hasNext()) {
+	    QueryHit hit = (QueryHit) iter.next();
+	    hit.writeTo(buffer);
+	}
+	
+	/* write the extended data if any */
+	if (extendedData != null) {
+	    buffer.put(extendedData);
+	}
+
+	buffer.put(serventId);
     }
     
     public static QueryResponseMessage readFrom(ByteBuffer buffer,
 						MessageHeader messageHeader,
 						GnutellaConnection connection) {
+
+	int bufferStartPos = buffer.position();
 
 	int numberOfHits = ByteDecoder.decode8Bit(buffer);
 	int port = ByteDecoder.decode16Bit(buffer);
@@ -82,23 +98,25 @@ public class QueryResponseMessage extends Message {
 	int hostSpeed = ByteDecoder.decode32Bit(buffer);
 	List queryHits = new ArrayList();
 	
-	/*
-	 * NOTE: this needs to take into account the strange bear-share extensions
-	 *
-	 */
-	
 	/* Read all hits */
 	for (int i = 0; i < numberOfHits; i++) {
-	    int fileIndex = ByteDecoder.decode32Bit(buffer);
-	    int fileSize = ByteDecoder.decode32Bit(buffer);
-	    String fileName = ByteDecoder.decodeAsciiString(buffer);
-	    
-	    /* throw away extra null terminator */
-	    int nullTerminator = ByteDecoder.decode8Bit(buffer);
-	    
-	    queryHits.add(new QueryHit(fileIndex, fileSize, fileName));
+	    queryHits.add(QueryHit.readFrom(buffer));
 	}
 	
+	/*
+	 * Read extended queryhit data if present
+	 */
+	
+	byte extendedData[] = null;
+	int expectedSize = messageHeader.getMessageBodySize();
+	int bytesRead = buffer.position() - bufferStartPos;
+	int extendedDataSize = expectedSize - bytesRead - 16;
+
+	if (extendedDataSize > 0) {
+	    extendedData = new byte[extendedDataSize];
+	    buffer.get(extendedData);
+	}
+
 	byte serventId[] = new byte[16];
 	buffer.get(serventId);
 	
@@ -108,19 +126,36 @@ public class QueryResponseMessage extends Message {
 					hostIP, 
 					port, 
 					hostSpeed, 
-					queryHits); 
+					queryHits,
+					extendedData); 
     }
     
     public String toString() {
 	String toReturn = "QueryResponseMessage: host=" + hostIP
-	    + ", port=" + port
-	    + ", hostSpeed=" 
+	    + ", port=" + port;
+
+	if (extendedData == null) {
+	    toReturn += ", no extended data";
+	} else {
+	    toReturn += ", extended data=";
+	    for (int i = 0; i < extendedData.length; i++) {
+		toReturn += Integer.toHexString(extendedData[i] < 0 ? extendedData[i] + 256 : extendedData[i]);
+		if (i != (extendedData.length - 1)) {
+		    toReturn += ",";
+		}
+	    }
+	}
+
+	toReturn += ", hostSpeed=" + hostSpeed
 	    + ", hits:\n";
 
 	Iterator iter = queryHits.iterator();
 	while (iter.hasNext()) {
 	    QueryHit hit = (QueryHit) iter.next();
-	    toReturn += "  " + hit + "\n";
+	    toReturn += "  " + hit;
+	    if (iter.hasNext()) {
+		toReturn += "\n";
+	    }
 	}
 
 	return toReturn;

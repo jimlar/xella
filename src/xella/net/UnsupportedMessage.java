@@ -10,7 +10,7 @@ public class UnsupportedMessage extends Message {
 	super(receivedFrom, header);
     }
     
-    public ByteBuffer getByteBuffer() {
+    public void writeTo(ByteBuffer buffer) {
 	throw new RuntimeException("cant send unsupported messages!");
     }
 

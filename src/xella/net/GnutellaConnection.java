@@ -459,14 +459,16 @@ class GnutellaConnection {
 	    
 	    if (sendBuffer.size() > 0) {
 		Message message = (Message) sendBuffer.remove(0);
-		currentOutputBuffer = message.getByteBuffer();
 		log("sending message: " + message);
 
+		currentOutputBuffer = ByteBuffer.allocate(message.size());
+		message.writeTo(currentOutputBuffer);
 		currentOutputBuffer.rewind();
-		byte debug[] = new byte[currentOutputBuffer.remaining()];
-		currentOutputBuffer.get(debug);
+
+		//byte debug[] = new byte[currentOutputBuffer.remaining()];
+		//currentOutputBuffer.get(debug);
 		//log("sending message: ", debug);
-		currentOutputBuffer.rewind();
+		//currentOutputBuffer.rewind();
 
 		socketChannel.write(currentOutputBuffer);
 		numMessagesSent++;

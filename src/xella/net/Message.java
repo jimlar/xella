@@ -19,8 +19,8 @@ public abstract class Message {
 	this.header = header;
     }
 
-    public byte[] getDescriptorId() {
-	return header.getDescriptorId();
+    public MessageId getMessageId() {
+	return header.getMessageId();
     }
 
     public int getHops() {
@@ -39,7 +39,7 @@ public abstract class Message {
 	}
     }
 
-    public abstract ByteBuffer getByteBuffer();
+    public abstract void writeTo(ByteBuffer buffer);
 
 
     public int size() {

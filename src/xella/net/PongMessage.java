@@ -41,15 +41,12 @@ public class PongMessage extends Message {
 	return kilobytesShared;
     }
 
-    public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(size());
-	buffer.put(getHeader().getByteBuffer());
+    public void writeTo(ByteBuffer buffer) {
+	getHeader().writeTo(buffer);
 	buffer.put(ByteEncoder.encode16Bit(port));
 	buffer.put(ByteEncoder.encodeIPNumber(host));
 	buffer.put(ByteEncoder.encode32Bit(numShared));
 	buffer.put(ByteEncoder.encode32Bit(kilobytesShared));
-	buffer.rewind();
-	return buffer;
     }
 
     public static PongMessage readFrom(ByteBuffer buffer, 

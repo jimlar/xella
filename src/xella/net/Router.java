@@ -157,12 +157,12 @@ public class Router {
      */
     private void routeBack(Message message, MessageCache cache) {
 	
-	Message parentMessage = cache.getByDescriptorId(message.getDescriptorId());
+	Message parentMessage = cache.getByMessageId(message.getMessageId());
 	if (parentMessage == null) {
 	    message.drop();
 	    failedRouteBacks++;
 	    //System.out.println("routeBack: message dropped: parent message not seen (or too late)."
-	    //+ " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
+	    //		       + " s=" + successfulRouteBacks + ", f=" + failedRouteBacks);
 	    return;
 	} 
 

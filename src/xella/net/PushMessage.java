@@ -24,16 +24,12 @@ public class PushMessage extends Message {
 	this.fileIndex = fileIndex;
     }
     
-    public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
-	buffer.put(getHeader().getByteBuffer());
-
+    public void writeTo(ByteBuffer buffer) {
+	getHeader().writeTo(buffer);
 	buffer.put(serventId);
 	buffer.put(ByteEncoder.encode32Bit(fileIndex));
 	buffer.put(ByteEncoder.encodeIPNumber(hostIP));
 	buffer.put(ByteEncoder.encode16Bit(port));
-	buffer.rewind();
-	return buffer;
     }
 
     public static PushMessage readFrom(ByteBuffer buffer,

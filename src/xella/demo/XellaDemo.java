@@ -217,15 +217,9 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     }//GEN-END:initComponents
 
     private void startSearchHandler(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startSearchHandler
-        // Add your handling code here:
-        try {
-            QueryMessage message = MessageFactory.getInstance().createQueryMessage(0, searchTextField.getText());
-            this.activeQuery = message;
-            engine.send(message);
-        } catch (IOException e) {
-            System.out.println("Cant start search: " + e);
-            e.printStackTrace();
-        }
+	QueryMessage message = MessageFactory.getInstance().createQueryMessage(0, searchTextField.getText());
+	this.activeQuery = message;
+	engine.send(message);
     }//GEN-LAST:event_startSearchHandler
 
     /** Exit the Application */
@@ -274,30 +268,52 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     public void receivedPing(PingMessage message) {
 	numPings++;
 	updateStatistics();
-	try {
-	    /* Pong the pings */
-	    PongMessage pongMessage 
-		= MessageFactory.getInstance().createPongMessage(message,
-								 "192.168.1.31", 
-								 6346, 
-								 12, 
-								 1234567890);
-	    engine.send(pongMessage);	
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
+
+	/* Pong the pings */
+	PongMessage pongMessage 
+	    = MessageFactory.getInstance().createPongMessage(message,
+							     "192.168.1.31", 
+							     6346, 
+							     12, 
+							     1234567890);
+	engine.send(pongMessage);	
     }
 
 
-    public void receivedPong(PongMessage message) {numPongs++; updateStatistics();}
-    public void receivedPush(PushMessage message) {numPushes++; updateStatistics();}
-    public void receivedQuery(QueryMessage message) {numQueries++; updateStatistics();}
+    public void receivedPong(PongMessage message) {
+	numPongs++; 
+	updateStatistics();
+    }
+
+    public void receivedPush(PushMessage message) {
+	numPushes++;
+	updateStatistics();
+    }
+
+    public void receivedQuery(QueryMessage message) {
+	numQueries++; 
+	updateStatistics();
+	
+	/* Test to reply to a query */
+	if (message.getSearchString().equals("ant")) {
+	    
+	    List hits = new ArrayList();
+	    hits.add(new QueryHit(0, 1024, "big fat ant.mp3"));
+	    QueryResponseMessage responseMessage 
+		= MessageFactory.getInstance().createQueryResponseMessage(message,
+									  new byte[16],
+									  "192.168.1.31", 
+									  6346, 
+									  1024, 
+									  hits);
+	    engine.send(responseMessage);
+	}
+    }
+
     public void receivedQueryResponse(QueryResponseMessage message) {
 	numQueryResponses++; 
 	updateStatistics();
         if (message.isResponseFor(activeQuery)) {
-           System.out.println("OUR RESPONSE: " + message);
-
 	   String host = message.getHostIP();
 	   Integer speed = new Integer(message.getHostSpeed());
 	   Iterator iter = message.getQueryHits().iterator();

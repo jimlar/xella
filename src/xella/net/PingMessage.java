@@ -10,8 +10,8 @@ public class PingMessage extends Message {
 	super(receivedFrom, header);
     }
     
-    public ByteBuffer getByteBuffer() {
-	return getHeader().getByteBuffer();
+    public void writeTo(ByteBuffer buffer) {
+	getHeader().writeTo(buffer);
     }
 
     public static PingMessage readFrom(ByteBuffer buffer, 

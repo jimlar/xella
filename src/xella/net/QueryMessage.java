@@ -17,15 +17,20 @@ public class QueryMessage extends Message {
 	this.searchString = searchString;
 	this.minSpeed = minSpeed;
     }
+
+    public String getSearchString() {
+	return searchString;
+    }
+
+    public int getMinSpeed() {
+	return minSpeed;
+    }
     
-    public ByteBuffer getByteBuffer() {
-	ByteBuffer buffer = ByteBuffer.allocate(MessageHeader.SIZE + getHeader().getMessageBodySize());
-	buffer.put(getHeader().getByteBuffer());
+    public void writeTo(ByteBuffer buffer) {
+	getHeader().writeTo(buffer);
 	buffer.put(ByteEncoder.encode16Bit(minSpeed));
 	buffer.put(ByteEncoder.encodeAsciiString(searchString));
 	buffer.put(ByteEncoder.encode8Bit(0));
-	buffer.rewind();
-	return buffer;
     }
 
     public static QueryMessage readFrom(ByteBuffer buffer,

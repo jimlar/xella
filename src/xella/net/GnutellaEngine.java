@@ -64,7 +64,7 @@ public class GnutellaEngine {
 	connectionListeners.add(connectionListener);
     }
     
-    public void send(Message message) throws IOException {
+    public void send(Message message) {
 	router.route(message);
     }
 
