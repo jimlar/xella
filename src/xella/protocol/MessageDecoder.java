@@ -2,6 +2,7 @@
 package xella.protocol;
 
 import java.io.*;
+import java.util.*;
 
 /**
  * This class can decode Gnutella messages
@@ -10,8 +11,14 @@ import java.io.*;
 
 class MessageDecoder {
 
-    public static Message decodeMessage(InputStream in) throws IOException {
-	MessageHeader messageHeader = decodeHeader(in);
+    private InputStream in;
+
+    public MessageDecoder(InputStream in) {
+	this.in = in;
+    }
+
+    public Message decodeNextMessage() throws IOException {
+	MessageHeader messageHeader = decodeHeader();
 	
 	/* Header decoded, decode body (thrash unsupported messages) */
 	switch (messageHeader.getMessageType()) {
@@ -20,16 +27,16 @@ class MessageDecoder {
 	    return new PingMessage(messageHeader);
 
  	case GnutellaConstants.PAYLOAD_PONG:
- 	    return decodePongMessage(messageHeader, in);
+ 	    return decodePongMessage(messageHeader);
 
 // 	case GnutellaConstants.PAYLOAD_PUSH:
 // 	    break;
 
  	case GnutellaConstants.PAYLOAD_QUERY:
-	    return decodeQueryMessage(messageHeader, in);
+	    return decodeQueryMessage(messageHeader);
 
-// 	case GnutellaConstants.PAYLOAD_QUERY_HIT:
-// 	    break;
+ 	case GnutellaConstants.PAYLOAD_QUERY_HIT:
+	    return decodeQueryResponseMessage(messageHeader);
 
 	default:
 	    /* unknown message type, just ignore the body */
@@ -40,82 +47,106 @@ class MessageDecoder {
 	}
     }
 
-
-
-    private static MessageHeader decodeHeader(InputStream in) 
+    private MessageHeader decodeHeader() 
 	throws IOException
     {	
-	byte buffer[] = new byte[GnutellaConstants.DESCRIPTOR_HEADER_LENGTH];
-	int bytesRead = in.read(buffer);
-
-	FileOutputStream fileOut = new FileOutputStream("message.out");
-	fileOut.write(buffer, 0, bytesRead);
-
- 	if (bytesRead != buffer.length) {
- 	    throw new IOException("EOF before descriptor header read (read " 
+	byte descriptorId[] = new byte[16];
+	int bytesRead = in.read(descriptorId);
+ 	if (bytesRead != descriptorId.length) {
+ 	    throw new IOException("EOF before descriptor id read (read " 
  				  + bytesRead + " bytes)");
  	}
-
-	/* 
-	 * 0 - 15  = descriptor id 
-	 * 16      = payload descriptor (type)
-	 * 17      = ttl
-	 * 18      = hops
-	 * 19 - 22 = payload length
-	 */
-
-	byte descriptorId[] = new byte[16];
-	System.arraycopy(buffer, 0, descriptorId, 0, descriptorId.length);
 	
-	int payloadDescriptor = (buffer[16] < 0 ? buffer[16] + 256 : buffer[16]);
-	int ttl = (buffer[17] < 0 ? buffer[17] + 256 : buffer[17]);
-	int hops = (buffer[18] < 0 ? buffer[18] + 256 : buffer[18]);
-	
-	/* Little endian */
-	int payloadLength = (buffer[19] & 0xff) 
-	    | (buffer[20] & 0xff) << 8 
-	    | (buffer[21] & 0xff) << 16 
-	    | (buffer[22] & 0xff) << 24;
+	int payloadDescriptor = read8Bit();
+	int ttl = read8Bit();
+	int hops = read8Bit();
+	int payloadLength = read32Bit();
 	    
 	return new MessageHeader(descriptorId, payloadDescriptor, ttl, hops, payloadLength);
     }
 
-    private static PongMessage decodePongMessage(MessageHeader messageHeader, InputStream in)
+    private PongMessage decodePongMessage(MessageHeader messageHeader)
 	throws IOException
     {
-	int port = read16Bit(in);
-	String host = readIPNumber(in);
-	int numShared = read32Bit(in);
-	int kilobytesShared = read32Bit(in);
+	int port = read16Bit();
+	String host = readIPNumber();
+	int numShared = read32Bit();
+	int kilobytesShared = read32Bit();
 	return new PongMessage(messageHeader, host, port, numShared, kilobytesShared);
     }
 
-    private static QueryMessage decodeQueryMessage(MessageHeader messageHeader, InputStream in)
+    private QueryMessage decodeQueryMessage(MessageHeader messageHeader)
 	throws IOException
     {
-	int minSpeed = read16Bit(in);
+	int minSpeed = read16Bit();
 
-	/* The last byte is a zero byte, we just discard it */
-	byte searchString[] = new byte[messageHeader.getMessageBodySize() - 3];
-	int bytesRead = in.read(searchString);
-	if (bytesRead != searchString.length) {
-	    throw new IOException("EOF before search string read (read " 
-				  + bytesRead + " expected " + searchString.length + ")");
-	}
-	in.read();
+	int stringSize = messageHeader.getMessageBodySize() - 3;
+	String searchString = readAsciiString(stringSize);
+
+	/* discard the null terminator */	
+	read8Bit();
 	
-	return new QueryMessage(messageHeader, new String(searchString, "ascii"), minSpeed);
+	return new QueryMessage(messageHeader, searchString, minSpeed);
     }
 
-    private static int read16Bit(InputStream in) 
+    private QueryResponseMessage decodeQueryResponseMessage(MessageHeader messageHeader)
+	throws IOException
+    {
+	int numberOfHits = read8Bit();
+	int port = read16Bit();
+	String hostIP = readIPNumber();
+	int hostSpeed = read32Bit();	
+	List queryHits = new ArrayList();
+
+	/* Read all hits */
+	for (int i = 0; i < numberOfHits; i++) {
+	    int fileIndex = read32Bit();
+	    int fileSize = read32Bit();
+	    String fileName = readAsciiString();
+
+	    /* throw away extra null terminator */
+	    read8Bit();
+	    
+	    queryHits.add(new QueryHit(fileIndex, fileSize, fileName));
+	}
+
+	byte serventId[] = new byte[16];
+	if (in.read(serventId) != 16) {
+	    throw new IOException("error reading servent id");
+	}
+
+	return new QueryResponseMessage(messageHeader, 
+					serventId, 
+					hostIP, 
+					port, 
+					hostSpeed, 
+					queryHits); 
+    }
+
+
+    private int read8Bit() 
+	throws IOException
+    {
+	int byteRead = in.read();
+	if (byteRead == -1) {
+	    throw new IOException("EOF before 8-bit value read");
+	}
+	
+	return byteRead;	
+    }
+
+    private int read16Bit() 
 	throws IOException 
     {
 	int loByte = in.read();
 	int hiByte = in.read();
+	if (loByte == -1 || hiByte == -1) {
+	    throw new IOException("EOF before 16-bit value read");
+	}
 	return (hiByte & 0xff) << 8 | (loByte & 0xff); 
     }
 
-    private static int read32Bit(InputStream in) 
+    private int read32Bit() 
 	throws IOException 
     {
 	byte buffer[] = new byte[4];
@@ -131,7 +162,7 @@ class MessageDecoder {
 	    | (buffer[3] & 0xff) << 24;	
     }
 
-    private static String readIPNumber(InputStream in) 
+    private String readIPNumber() 
 	throws IOException
     {
 	byte buffer[] = new byte[4];
@@ -145,5 +176,41 @@ class MessageDecoder {
 	    + "." + (buffer[1] < 0 ? buffer[1] + 256 : buffer[1]) 
 	    + "." + (buffer[2] < 0 ? buffer[2] + 256 : buffer[2]) 
 	    + "." + (buffer[3] < 0 ? buffer[3] + 256 : buffer[3]); 
+    }
+
+    /**
+     * Read fixed size ascii string 
+     */
+    private String readAsciiString(int size) throws IOException {
+	
+	byte stringBytes[] = new byte[size];
+	int bytesRead = in.read(stringBytes);
+	if (bytesRead != stringBytes.length) {
+	    throw new IOException("EOF before whole string read (read " 
+				  + bytesRead + " expected " + stringBytes.length + ")");
+	}
+
+	return new String(stringBytes, "ascii");
+    }
+
+    /**
+     * Read ascii string up until nul termnation
+     * (the null terminator is removed from the stream)
+     *
+     */
+    private String readAsciiString() throws IOException {
+
+	StringBuffer buffer = new StringBuffer(256);
+	int readChar = in.read();
+	while (readChar != 0) {
+	    if (readChar ==  -1) {
+		throw new IOException("EOF before whole string read (read " 
+				      + buffer.length() + " bytes)");
+	    }
+	    buffer.append((char) readChar);
+	    readChar = in.read();
+	}
+
+	return buffer.toString();
     }
 }
