@@ -47,13 +47,18 @@ public class GnutellaConnection {
 	messageGenerator.sendPing();
     }
 
-    public void sendPong(String hostIP, 
+    public void sendPong(PingMessage replyTo,
+			 String hostIP, 
 			 int port, 
 			 int numShared, 
 			 int kilobytesShared) 
 	throws IOException 
     {
-	messageGenerator.sendPong(hostIP, port, numShared, kilobytesShared);
+	messageGenerator.sendPong(replyTo,
+				  hostIP, 
+				  port, 
+				  numShared, 
+				  kilobytesShared);
     }
     
     public void sendQuery(int minSpeed, String searchString)

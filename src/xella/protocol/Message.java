@@ -10,6 +10,10 @@ public class Message {
 	this.header = header;
     }
 
+    public byte[] getDescriptorId() {
+	return header.getDescriptorId();
+    }
+
     public int getHops() {
 	return header.getHops();
     }

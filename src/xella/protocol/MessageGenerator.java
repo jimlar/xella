@@ -12,6 +12,7 @@ import java.util.*;
 
 class MessageGenerator {
     
+    private long nextMessageId = 1;
     private OutputStream out;
 
     public MessageGenerator(OutputStream out) {
@@ -25,17 +26,19 @@ class MessageGenerator {
 			     0);
     }
 
-    public void sendPong(String hostIP, 
+    public void sendPong(PingMessage  replyTo,
+			 String hostIP, 
 			 int port, 
 			 int numShared, 
 			 int kilobytesShared) 
 	throws IOException 
     {
-	sendDescriptorHeader(GnutellaConstants.PAYLOAD_PONG, 
+	sendDescriptorHeader(replyTo.getDescriptorId(), 
+			     GnutellaConstants.PAYLOAD_PONG, 
 			     GnutellaConstants.TTL, 
 			     0, 
 			     GnutellaConstants.PONG_BODY_LENGTH);	
-    
+	
 	write16Bit(port);
 	writeIPNumber(hostIP);
 	write32Bit(numShared);
@@ -63,10 +66,15 @@ class MessageGenerator {
 	throw new IOException("not implemented");
     }
 
-    public void sendPush(byte serventId[], int fileIndex, String hostIP, int port) 
+    public void sendPush(QueryResponseMessage replyTo,
+			 byte serventId[], 
+			 int fileIndex, 
+			 String hostIP, 
+			 int port) 
 	throws IOException 
     {
-	sendDescriptorHeader(GnutellaConstants.PAYLOAD_PUSH,
+	sendDescriptorHeader(replyTo.getDescriptorId(),
+			     GnutellaConstants.PAYLOAD_PUSH,
 			     GnutellaConstants.TTL, 
 			     0, 
 			     26);
@@ -83,8 +91,21 @@ class MessageGenerator {
 				      int payloadLength) 
 	throws IOException
     {	
-	out.write(getDescriptorId());
+	sendDescriptorHeader(getNewDescriptorId(),			     
+			     payloadDescriptor,
+			     ttl,
+			     hops,
+			     payloadLength);
+    }
 
+    private void sendDescriptorHeader(byte descriptorId[],
+				      int payloadDescriptor,
+				      int ttl,
+				      int hops,
+				      int payloadLength) 
+	throws IOException
+    {	
+	out.write(descriptorId);
 	write8Bit(payloadDescriptor);
 	write8Bit(ttl);
 	write8Bit(hops);
@@ -99,24 +120,35 @@ class MessageGenerator {
      *
      */
 
-    private byte[] getDescriptorId() {
-	String vmId = (new java.rmi.dgc.VMID()).toString();
-	byte toReturn[] = new byte[16];
+    private byte[] getNewDescriptorId() {
 	
-	for (int i = 0, j = 0; i < vmId.length(); i++) {
-	    if (i < 16) {
-		toReturn[j] = (byte) vmId.charAt(i);
-	    } else {
-		toReturn[j] ^= (byte) vmId.charAt(i);
-	    }
-	    j++;
-	    if (j >= 16) {
-		j = 0;
-	    }
+	long messageId = nextMessageId++;
+	byte toReturn[] = new byte[16];
+	for (int i = 0; i < 8; i++) {
+	    toReturn[i] = (byte) ((messageId >> (i * 8)) & 0xff);
 	}
 
 	return toReturn;
     }
+
+//    private byte[] getDescriptorId() {
+// 	String vmId = (new java.rmi.dgc.VMID()).toString();
+// 	byte toReturn[] = new byte[16];
+	
+// 	for (int i = 0, j = 0; i < vmId.length(); i++) {
+// 	    if (i < 16) {
+// 		toReturn[j] = (byte) vmId.charAt(i);
+// 	    } else {
+// 		toReturn[j] ^= (byte) vmId.charAt(i);
+// 	    }
+// 	    j++;
+// 	    if (j >= 16) {
+// 		j = 0;
+// 	    }
+// 	}
+
+// 	return toReturn;
+//     }
 
 
     private void write8Bit(int value) throws IOException {

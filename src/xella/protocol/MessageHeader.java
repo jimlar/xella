@@ -23,6 +23,10 @@ public class MessageHeader {
 	this.payloadLength = payloadLength;
     }
 
+    public byte[] getDescriptorId() {
+	return descriptorId;
+    }
+
     public int getMessageBodySize() {
 	return payloadLength;
     }

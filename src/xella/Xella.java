@@ -25,7 +25,7 @@ public class Xella {
 
 	while (true) {
 
-	    con.sendQuery(0, "cult");
+	    //con.sendQuery(0, "cult");
 	    con.sendPing();
 	    Thread.sleep(10000);
 	}
@@ -46,16 +46,16 @@ public class Xella {
 		    System.out.println(m.toString());	    
 
 		    if (m instanceof PingMessage) {
-			System.out.println("Got ping, sending pongs...");
-			con.sendPong("192.168.1.31", 6346, 12, 14);
-			con.sendPong("197.168.1.32", 6346, 12, 14);
-			con.sendPong("197.168.1.33", 6346, 12, 14);
-			con.sendPong("197.168.1.34", 6346, 12, 14);
-			con.sendPong("197.168.1.35", 6346, 12, 14);
-			con.sendPong("197.168.1.36", 6346, 12, 14);
-			con.sendPong("197.168.1.37", 6346, 12, 14);
-			con.sendPong("197.168.1.38", 6346, 12, 14);
-			con.sendPong("197.168.1.39", 6346, 12, 14);
+			System.out.println("Got ping, sending pong(s)...");
+			con.sendPong((PingMessage) m, "192.168.1.31", 6346, 12, 1024 * 1024);
+// 			con.sendPong("197.168.1.32", 6346, 12, 14);
+// 			con.sendPong("197.168.1.33", 6346, 12, 14);
+// 			con.sendPong("197.168.1.34", 6346, 12, 14);
+// 			con.sendPong("197.168.1.35", 6346, 12, 14);
+// 			con.sendPong("197.168.1.36", 6346, 12, 14);
+// 			con.sendPong("197.168.1.37", 6346, 12, 14);
+// 			con.sendPong("197.168.1.38", 6346, 12, 14);
+// 			con.sendPong("197.168.1.39", 6346, 12, 14);
 		    }
 		}	
 	    } catch (Exception e) {
