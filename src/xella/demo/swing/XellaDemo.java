@@ -4,7 +4,7 @@
  * Created on den 13 juli 2001, 16:03
  */
 
-package xella.demo;
+package xella.demo.swing;
 
 import java.io.IOException;
 import java.util.*;

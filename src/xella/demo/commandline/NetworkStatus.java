@@ -1,6 +1,5 @@
-package xella.demo;
+package xella.demo.commandline;
 
-import java.io.IOException;
 import java.util.*;
 
 import xella.net.*;
@@ -9,7 +8,7 @@ import xella.net.*;
  *
  * @author  jimmy
  */
-public class CommandLineDemo 
+public class NetworkStatus 
     implements MessageListener, ConnectionListener 
 {
     private GnutellaEngine engine;
@@ -27,33 +26,8 @@ public class CommandLineDemo
     private int numHostsIgnored = 0;
     private int numFoundHosts = 0;
 
-    /** Creates new form XellaDemo */
-    public CommandLineDemo() throws IOException {
-        this.engine = new GnutellaEngine(10, 12, 6346);
-
-	engine.addMessageListener(this);
-	engine.addConnectionListener(this);
-	engine.start();
-
-	engine.addHost("127.0.0.1", 5555);
-	engine.addHost("gnutellahosts.com", 6346);
- 	engine.addHost("router.limewire.com", 6346);
-	engine.addHost("gnutella.hostscache.com", 6346);
-    }
-
-    /**
-    * @param args the command line arguments
-    */
-    public static void main(String args[]) throws Exception {
-        new CommandLineDemo();
-	while (true) {
-	    Thread.sleep(1000);
-	}
-    }
-    
     public void receivedPing(PingMessage message) {
-	numPings++;
-	showStatus();
+	numPings++;	
 
 	/* Pong the pings */
 	PongMessage pongMessage 
@@ -68,17 +42,14 @@ public class CommandLineDemo
 
     public void receivedPong(PongMessage message) {
 	numPongs++; 
-	showStatus();
     }
 
     public void receivedPush(PushMessage message) {
 	numPushes++;
-	showStatus();
     }
 
     public void receivedQuery(QueryMessage message) {
 	numQueries++; 
-	showStatus();
 	
 	/* Test to reply to a query */
 	if (message.getSearchString().equals("ant")) {
@@ -98,55 +69,48 @@ public class CommandLineDemo
 
     public void receivedQueryResponse(QueryResponseMessage message) {
 	numQueryResponses++; 
-	showStatus();
     }
 
-    private void showStatus() {
+    public void showStatus() {
 	
-	System.out.print("\rmsg: " + numPings + " pi, " 
-			 + numPongs + " po, "
-			 + numPushes + " pu, " 
-			 + numQueries + " q, " 
-			 + numQueryResponses + " qr."
-			 + " con: " + numHostsConnected + " c, " 
-			 + numHostsDisconnected + " dc, " 
-			 + numConnectFailed + " cf, " 
-			 + numHostsConnecting + " cing, "
-			 + numHostsIgnored + " ih, "
-			 + numFoundHosts + " fh");
+	System.out.println("msg: " + numPings + " pi, " 
+			   + numPongs + " po, "
+			   + numPushes + " pu, " 
+			   + numQueries + " q, " 
+			   + numQueryResponses + " qr."
+			   + " con: " + numHostsConnected + " c, " 
+			   + numHostsDisconnected + " dc, " 
+			   + numConnectFailed + " cf, " 
+			   + numHostsConnecting + " cing, "
+			   + numHostsIgnored + " ih, "
+			   + numFoundHosts + " fh");
     }
 
     public synchronized void connecting(ConnectionInfo info) {
 	numHostsConnecting++;
-	showStatus();
     }
     
     public synchronized void connected(ConnectionInfo info) {
 	numHostsConnected++;
 	numHostsConnecting--;
-	showStatus();
     }
     
     public synchronized void connectFailed(ConnectionInfo info) {
 	numConnectFailed++;
 	numHostsConnecting--;
-	showStatus();
     }
     
     public synchronized void hostIgnored(Host host) {
 	numHostsIgnored++;
-	showStatus();
     }
     
     public synchronized void hostDiscovered(Host host) {
 	numFoundHosts++;
-	showStatus();
     }
     
     public synchronized void disconnected(ConnectionInfo info) {
 	numHostsDisconnected++;
 	numHostsConnected--;
-	showStatus();
     }
     public synchronized void statusChange(ConnectionInfo info) {}
 }

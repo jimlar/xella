@@ -1,5 +1,5 @@
 
-package xella.demo;
+package xella.demo.swing;
 
 import java.util.*;
 

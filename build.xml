@@ -29,7 +29,7 @@
 
   <!-- start xella demo gui -->
   <target name="demo" depends="xella">
-    <java classname="xella.demo.XellaDemo"
+    <java classname="xella.demo.swing.XellaDemo"
           classpath="${classpath}"
           fork="true"
           dir=".build">
@@ -38,7 +38,7 @@
 
   <!-- start xella command line demo -->
   <target name="cmddemo" depends="xella">
-    <java classname="xella.demo.CommandLineDemo"
+    <java classname="xella.demo.commandline.CommandLineDemo"
           classpath="${classpath}"
           fork="true"
           dir=".build">
