@@ -45,10 +45,41 @@ public class CommandLineDemo {
     }
 
     public void executeCommand(String command) {
-	if (command.equals("status")) {
-	    status.showStatus();
-	} else {
-	    System.out.println("Unknown command " + command);
+	try {
+	    if (command.startsWith("s")) {
+		status.showStatus();
+	    } else if (command.startsWith("q")) {
+		System.exit(0);
+	    } else if (command.startsWith("add")) {
+		
+		String host = null;
+		int port = 6346;
+
+		int i = command.indexOf(" ");
+		if (i == -1) {
+		    throw new IllegalArgumentException("Unknown command " + command);
+		}
+
+		int j = command.indexOf(":", i);
+		if (j == -1) {
+		    host = command.substring(i + 1);
+		} else {
+		    host = command.substring(i + 1, j);
+		    try {
+			port = Integer.parseInt(command.substring(j + 1));
+		    } catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Illegal port number " + command.substring(j + 1));
+		    }
+		}
+
+		engine.addHost(host, port);
+		System.out.println("Added " + host + ":" + port);
+
+	    } else {
+		throw new IllegalArgumentException("Unknown command " + command);
+	    }
+	} catch (IllegalArgumentException e) {
+	    System.out.println(e.getMessage());
 	}
     }
 

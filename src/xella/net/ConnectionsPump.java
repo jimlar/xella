@@ -45,11 +45,15 @@ class ConnectionsPump extends Thread {
 
 	    while (connectionGroup.isSmallerThanMinSize()) {
 		
-		GnutellaConnection connection = getNewConnection();
+		Host host = hostCatcher.getNextHost();
 		
-		if (connection != null) {
+		if (host != null) {
+		    GnutellaConnection connection = new GnutellaConnection(engine, 
+									   host.getHostname(), 
+									   host.getPort());
 		    try {
 			connectionGroup.addConnection(connection);
+
 		    } catch (IOException e) {
 			System.out.println("cant add connection to group: " + e);
 			connection.disconnect(e);
@@ -89,19 +93,6 @@ class ConnectionsPump extends Thread {
 	this.stopping = true;
     }
     
-    /**
-     * Fetch a new connection from the list of catched hosts
-     */
-    GnutellaConnection getNewConnection() {
-	
-	Host host = hostCatcher.getNextHost();
-	if (host == null) {
-	    return null;
-	}
-
-	return new GnutellaConnection(engine, host.getHostname(), host.getPort());
-    }
-
     /**
      * Fire up the asychronous server socket
      */

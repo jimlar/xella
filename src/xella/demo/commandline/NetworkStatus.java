@@ -73,17 +73,17 @@ public class NetworkStatus
 
     public void showStatus() {
 	
-	System.out.println("msg: " + numPings + " pi, " 
-			   + numPongs + " po, "
-			   + numPushes + " pu, " 
-			   + numQueries + " q, " 
-			   + numQueryResponses + " qr."
-			   + " con: " + numHostsConnected + " c, " 
-			   + numHostsDisconnected + " dc, " 
-			   + numConnectFailed + " cf, " 
-			   + numHostsConnecting + " cing, "
-			   + numHostsIgnored + " ih, "
-			   + numFoundHosts + " fh");
+	System.out.println("Messages: " + numPings + " pings\n" 
+			   + "          " + numPongs + " pongs\n"
+			   + "          " + numPushes + " pushes\n" 
+			   + "          " + numQueries + " queries\n" 
+			   + "          " + numQueryResponses + " query responses\n"
+			   + "Connections: " + numHostsConnected + " connected\n" 
+			   + "             " + numHostsDisconnected + " disconnected\n" 
+			   + "             " + numConnectFailed + " connect failed\n" 
+			   + "             " + numHostsConnecting + " connecting\n"
+			   + "             " + numHostsIgnored + " hosts ignored\n"
+			   + "             " + numFoundHosts + " hosts found");
     }
 
     public synchronized void connecting(ConnectionInfo info) {
