@@ -34,7 +34,7 @@ class ConnectionsWatch extends Thread implements MessageListener {
     public void run() {
 	while (!stopping) {
 	    for (int i = 0; i < connections.length; i++) {
-		if (connections[i] == null) {
+		if (connections[i] == null || connections[i].isClosed()) {
 		    try {
 			connections[i] = getNewConnection();
 		    } catch (IOException e) {

@@ -4,39 +4,79 @@ package xella.net;
 import java.io.*;
 import java.net.*;
 
-public class GnutellaConnection {
+class GnutellaConnection {
 
     private GnutellaEngine engine;
+
+    private String host;
+    private int port;
     private Socket socket;
+    private boolean isClient;
     private GnutellaOutputStream out;
     private GnutellaInputStream in;
 
     private MessageDecoder messageDecoder;
     private MessageReader reader;
 
+    private Exception disconnectReason;
+    private boolean isClosed;
+
     /**
      * Connect as a client
      */
-    public GnutellaConnection(GnutellaEngine engine, String host, int port) 
+    GnutellaConnection(GnutellaEngine engine, String host, int port) 
 	throws IOException
     {
-	this(engine, new Socket(host, port), true);
+	//Move socket creation
+	this(engine, host, port, null, true);
     }
 
     /**
-     * @param isClient if true we are assumed to be the client side 
-     *                 (ie. sending the connect string, otherwise we are receiveing the 
-     *                      connect string)
-     *
+     * Act as a server with the supplied socket
+     * (probably retrieved from a ServerSocket.accept())
      */
     
-    public GnutellaConnection(GnutellaEngine engine, Socket socket, boolean isClient) 
-	throws IOException 
+    GnutellaConnection(GnutellaEngine engine, Socket socket) 
+	throws IOException
     {
+	this(engine, null, -1, socket, false);
+    }
+
+    /**
+     * If socket param is null then host and port is used to open a client socket
+     */
+
+    private GnutellaConnection(GnutellaEngine engine, String host, int port, Socket socket, boolean isClient) 
+	throws IOException
+    {
+	if (isClient == false && socket == null) {
+	    throw new IllegalArgumentException("need socket to operate in non client mode");
+	}
+
 	this.engine = engine;
+	this.host = host;
+	this.port = port;
 	this.socket = socket;
-	this.out = new GnutellaOutputStream(socket.getOutputStream());
-	this.in = new GnutellaInputStream(socket.getInputStream());
+	this.isClient = isClient;
+	reader = new MessageReader();
+	reader.start();
+    }
+
+    void send(Message message) throws IOException {
+	message.send(out);
+    }
+
+    boolean isClosed() {
+	return isClosed;
+    }
+    
+    private void connect() throws IOException {
+
+	if (this.socket == null) {
+	    this.socket = new Socket(host, port);
+	}
+	this.out = new GnutellaOutputStream(this.socket.getOutputStream());
+	this.in = new GnutellaInputStream(this.socket.getInputStream());
 	
 	if (isClient) {
 	    doClientHandshake();
@@ -44,22 +84,31 @@ public class GnutellaConnection {
 	    doServerHandshake();
 	}
 
-	this.messageDecoder = new MessageDecoder(this);
+	this.messageDecoder = new MessageDecoder(this, this.in);
 	engine.getRouter().addConnection(this);
-
-	reader = new MessageReader();
-	reader.start();
 
 	/* Always start out with a ping */
 	send(MessageFactory.getInstance().createPingMessage());
+	this.isClosed = false;
     }
 
-    void send(Message message) throws IOException {
-	message.send(out);
+    private void disconnect() {
+	disconnect(null);
     }
 
-    GnutellaInputStream getInputStream() {
-	return this.in;
+    /**
+     * close connection with a message
+     * (this method ignores exceptions while trying to close)
+     */
+    private void disconnect(Exception disconnectReason) {
+	if (!isClosed) {
+	    this.disconnectReason = disconnectReason;
+	    try {
+		this.socket.close();
+	    } catch (Exception e) {}
+	    engine.getRouter().removeConnection(this);
+	    this.isClosed = true;
+	}
     }
 
     private void receiveNextMessage() throws IOException {
@@ -116,12 +165,19 @@ public class GnutellaConnection {
     private class MessageReader extends Thread {	
 	public void run() {
 	    try {
-		while (true) {
+		connect();
+	    } catch (IOException e) {
+		System.out.println("Error connecting, closing connection");
+		disconnect(e);
+	    }
+
+	    try {
+		while (!isClosed()) {
 		    receiveNextMessage();
 		}
 	    } catch (IOException e) {
-		System.out.println("Error reading next message, should close connection");
-		e.printStackTrace();
+		System.out.println("Error reading next message, closing connection");
+		disconnect(e);
 	    }
 	}
     }

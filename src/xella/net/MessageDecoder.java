@@ -14,9 +14,9 @@ class MessageDecoder {
     private GnutellaConnection connection;
     private GnutellaInputStream in;
 
-    public MessageDecoder(GnutellaConnection connection) {
+    public MessageDecoder(GnutellaConnection connection, GnutellaInputStream in) {
 	this.connection = connection;
-	this.in = connection.getInputStream();
+	this.in = in;
     }
 
     public Message decodeNextMessage() throws IOException {
