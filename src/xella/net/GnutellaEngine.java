@@ -31,7 +31,7 @@ public class GnutellaEngine {
 	this.connectionListeners = new ArrayList();
 	this.listenPort = listenPort;
 	this.connectionGroup = new ConnectionGroup(minConnections, maxConnections);
-	this.router = new Router(10, 2000, this.connectionGroup);
+	this.router = new Router(this.connectionGroup);
 	this.hostCatcher = new HostCatcher(this);
     }
 
@@ -57,9 +57,12 @@ public class GnutellaEngine {
     }
     
     public void send(Message message) {
-	router.route(message);
+	router.routeNewMessage(message);
     }
 
+    /**
+     * Add prioritized host for connecting 
+     */
     public void addHost(String host, int port) {
 	hostCatcher.addHost(host, port);
     }
@@ -88,7 +91,7 @@ public class GnutellaEngine {
 	    }
 	}
 
-	router.route(message);
+	router.routeReceivedMessage(message);
     }
 
     ConnectionGroup getConnectionGroup() {

@@ -64,8 +64,11 @@ public abstract class Message {
      */
     public void drop() {
 	this.isDropped = true;
+	if (receivedFrom != null) {
+	    receivedFrom.increaseDroppedMessages();
+	}
     }
-
+    
     protected MessageHeader getHeader() {
 	return this.header;
     }

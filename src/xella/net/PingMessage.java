@@ -21,7 +21,7 @@ public class PingMessage extends Message {
     }
     
     public String toString() {
-	return "PingMessage";
+	return "PingMessage: " + getHeader();
     }
 
     public boolean equals(Object o) {

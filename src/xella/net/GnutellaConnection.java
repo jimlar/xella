@@ -42,12 +42,15 @@ class GnutellaConnection {
 
     private int numMessagesReceived = 0;
     private int numMessagesSent = 0;
+    private int numMessagesDropped = 0;
 
     private int connectionState = STATE_NEW;
 
     private ByteBuffer inputBuffer;
     private ByteBuffer outputBuffer;
     private MessageHeader currentMessageHeader;
+
+    private ConnectionInfo connectionInfo;
 
 
     private synchronized static int getNextConnectionNumber() {
@@ -95,6 +98,15 @@ class GnutellaConnection {
 	this.inputBuffer = ByteBuffer.allocateDirect(MAX_MESSAGESIZE);
 	this.inputBuffer.limit(0);
 
+	this.connectionInfo = new ConnectionInfo(connectionNumber,
+						 host, 
+						 port, 
+						 isClient,
+						 "New",
+						 numMessagesReceived,
+						 numMessagesSent,
+						 numMessagesDropped);	
+	
 	pumpConnection();
     }
 
@@ -106,12 +118,12 @@ class GnutellaConnection {
 	synchronized (sendQueue) {
 	    if (sendQueue.size() >= SENDBUFFER_CLOSE_LEVEL) {
 		disconnect(new IOException("send buffer overflow"));
-		engine.disconnected(new ConnectionInfo(host,
-						       port,
-						       isClient,
-						       "Send buffer overflow", 
-						       numMessagesReceived,
-						       numMessagesSent));
+		connectionInfo.setStatus("Send buffer overflow", 
+					 numMessagesReceived,
+					 numMessagesSent,
+					 numMessagesDropped);
+
+		engine.disconnected(connectionInfo);
 		return;
 	    }
 	    
@@ -130,6 +142,11 @@ class GnutellaConnection {
 
     SocketChannel getChannel() {
 	return socketChannel;
+    }
+
+    synchronized void increaseDroppedMessages() {
+	numMessagesDropped++;
+	sendStatusChange();
     }
 
     /**
@@ -159,12 +176,11 @@ class GnutellaConnection {
 	    case STATE_HANDSHAKE_STEP2:
 		finishHandshake();
 		if (isConnected()) {
-		    engine.connected(new ConnectionInfo(host, 
-							port, 
-							isClient,
-							"Connected",
-							numMessagesReceived,
-							numMessagesSent));
+		    connectionInfo.setStatus("Connected",
+					     numMessagesReceived,
+					     numMessagesSent,
+					     numMessagesDropped);
+		    engine.connected(connectionInfo);
 		}
 		break;
 		
@@ -195,21 +211,19 @@ class GnutellaConnection {
 	    case STATE_CONNECTING:
 	    case STATE_HANDSHAKE_STEP1:
 	    case STATE_HANDSHAKE_STEP2:
-		engine.connectFailed(new ConnectionInfo(host, 
-							port,
-							isClient,
-							e.getMessage(),
-							numMessagesReceived,
-							numMessagesSent));
+		connectionInfo.setStatus(e.getMessage(),
+					 numMessagesReceived,
+					 numMessagesSent,
+					 numMessagesDropped);
+		engine.connectFailed(connectionInfo);
 		break;
 
 	    default:
-		engine.disconnected(new ConnectionInfo(host, 
-						       port, 
-						       isClient,
-						       e.getMessage(),
-						       numMessagesReceived,
-						       numMessagesSent));
+		connectionInfo.setStatus(e.getMessage(),
+					 numMessagesReceived,
+					 numMessagesSent,
+					 numMessagesDropped);
+		engine.disconnected(connectionInfo);
 		break;
 	    }
 	}
@@ -232,15 +246,11 @@ class GnutellaConnection {
 
 	/* Connect us if we are a client connection */
 	if (isClient) {
-
-	    log("connecting to " + host + ":" + port);
-	    engine.connecting(new ConnectionInfo(host, 
-						 port, 
-						 isClient,
-						 "Connecting",
-						 numMessagesReceived,
-						 numMessagesSent));	
-	    
+	    connectionInfo.setStatus("Connecting",
+				     numMessagesReceived,
+				     numMessagesSent,
+				     numMessagesDropped);	
+	    engine.connecting(connectionInfo);	    
 	    this.socketChannel = SocketChannel.open();
 	    this.socketChannel.connect(new InetSocketAddress(host, port));
 	}
@@ -255,6 +265,7 @@ class GnutellaConnection {
 
 	if (this.socketChannel.isConnected()) {
 	    connectionState = STATE_HANDSHAKE_STEP1;
+	    sendStatusChange("Handshaking...");
 	}
     }
 
@@ -306,8 +317,6 @@ class GnutellaConnection {
 	outputBuffer.rewind();
 	socketChannel.write(outputBuffer);
 
-	log("handshake sent, reading response...");
-
 	inputBuffer.limit(CONNECT_OK_REPLY.length() + 2);
 	inputBuffer.rewind();
 	socketChannel.read(inputBuffer);
@@ -328,7 +337,6 @@ class GnutellaConnection {
 	    if (!reply.equalsIgnoreCase(CONNECT_OK_REPLY + "\n\n")) {
 		throw new IOException("hanshaking error (reply was '" + reply + "')");
 	    }
-	    log("handshake ok!");
 	    inputBuffer.limit(0);
 	    return true;
 	}
@@ -431,6 +439,7 @@ class GnutellaConnection {
 	    inputBuffer.limit(MessageHeader.SIZE);
 	    inputBuffer.rewind();
 	    connectionState = STATE_CONNECTED_RECEIVING_HEADER;		
+	    sendStatusChange();
 	}
     }
 
@@ -457,8 +466,22 @@ class GnutellaConnection {
 		
 		/* We might aswell do a write right now */
 		socketChannel.write(outputBuffer);
+
+		sendStatusChange();
 	    }
 	} 
+    }
+
+    private void sendStatusChange(String status) {
+	connectionInfo.setStatus(status,
+				 numMessagesReceived,
+				 numMessagesSent,
+				 numMessagesDropped);	
+	engine.statusChange(connectionInfo);
+    }
+
+    private void sendStatusChange() {
+	sendStatusChange(connectionInfo.getStatusMessage());
     }
 
     private void log(String message) {

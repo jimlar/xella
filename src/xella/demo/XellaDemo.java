@@ -30,7 +30,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     private int numConnectFailed = 0;
     private int numHostsDisconnected = 0;
     private int numHostsIgnored = 0;
-    private int numKnownHosts = 0;
+    private int numFoundHosts = 0;
 
 
     /** Creates new form XellaDemo */
@@ -77,9 +77,11 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
         hostsConnectFailedLabel = new javax.swing.JLabel();
         hostsDisconnectedLabel = new javax.swing.JLabel();
         hostsIgnoredLabel = new javax.swing.JLabel();
-        hostsKnownLabel = new javax.swing.JLabel();
+        hostsFoundLabel = new javax.swing.JLabel();
         jPanel6 = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        connectionsTable = new javax.swing.JTable();
         
         setTitle("Xella demo");
         addWindowListener(new java.awt.event.WindowAdapter() {
@@ -196,9 +198,9 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
         hostsIgnoredLabel.setFont(new java.awt.Font("Dialog", 0, 11));
         jPanel3.add(hostsIgnoredLabel);
         
-        hostsKnownLabel.setText("Known hosts: 0");
-        hostsKnownLabel.setFont(new java.awt.Font("Dialog", 0, 11));
-        jPanel3.add(hostsKnownLabel);
+        hostsFoundLabel.setText("Found hosts: 0");
+        hostsFoundLabel.setFont(new java.awt.Font("Dialog", 0, 11));
+        jPanel3.add(hostsFoundLabel);
         
         jPanel8.add(jPanel3);
         
@@ -211,6 +213,33 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
         jPanel4.add(jPanel8, java.awt.BorderLayout.NORTH);
         
         jTabbedPane2.addTab("Statistics", jPanel4);
+        
+        connectionsTable.setModel(new javax.swing.table.DefaultTableModel(
+        new Object [][] {
+            
+        },
+        new String [] {
+            "Host", "Sent", "Received", "Dropped", "Status"
+        }
+        ) {
+            Class[] types = new Class [] {
+                java.lang.String.class, java.lang.Integer.class, java.lang.Integer.class, java.lang.Integer.class, java.lang.String.class
+            };
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+            
+            public Class getColumnClass(int columnIndex) {
+                return types [columnIndex];
+            }
+            
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
+        jScrollPane1.setViewportView(connectionsTable);
+        
+        jTabbedPane2.addTab("Connections", jScrollPane1);
         
         getContentPane().add(jTabbedPane2, java.awt.BorderLayout.CENTER);
         
@@ -260,9 +289,11 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     private javax.swing.JLabel hostsConnectFailedLabel;
     private javax.swing.JLabel hostsDisconnectedLabel;
     private javax.swing.JLabel hostsIgnoredLabel;
-    private javax.swing.JLabel hostsKnownLabel;
+    private javax.swing.JLabel hostsFoundLabel;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTable connectionsTable;
     // End of variables declaration//GEN-END:variables
 
     
@@ -338,7 +369,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 	hostsConnectFailedLabel.setText("Connect failed: " + numConnectFailed);
 	hostsConnectingLabel.setText("Connecting: " + numHostsConnecting);
 	hostsIgnoredLabel.setText("Ignored hosts: " + numHostsIgnored);
-	hostsKnownLabel.setText("Known hosts: " + numKnownHosts);
+	hostsFoundLabel.setText("Found hosts: " + numFoundHosts);
     }
 
     public synchronized void connecting(ConnectionInfo info) {
@@ -364,7 +395,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     }
     
     public synchronized void hostDiscovered(Host host) {
-	numKnownHosts++;
+	numFoundHosts++;
 	updateStatistics();
     }
     
@@ -373,10 +404,13 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 	numHostsConnected--;
 	updateStatistics();
 	System.out.println("Disconnected " + info.getHost() 
-			   + " (sent " + info.getNumMessagesSent() 
-			   + ", received " + info.getNumMessagesReceived() 
+			   + " (sent " + info.getMessagesSent() 
+			   + ", received " + info.getMessagesReceived() 
+			   + ", dropped " + info.getMessagesDropped() 
 			   + "), " + info.getStatusMessage());
     }
 
-    public synchronized void statusChange(ConnectionInfo info) {}
+    public synchronized void statusChange(ConnectionInfo info) {
+	//System.out.println("Status changed: " + info);
+    }
 }

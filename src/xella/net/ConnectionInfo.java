@@ -7,26 +7,36 @@ package xella.net;
 
 public class ConnectionInfo {
 
+    private int connectionId;
     private String host;
     private int port;
     private boolean isOutgoing;    
     private String statusMessage;
-    private int numMessagesSent;
-    private int numMessagesReceived;
+    private int messagesSent;
+    private int messagesReceived;
+    private int messagesDropped;
 
 
-    ConnectionInfo(String host, 
+    ConnectionInfo(int connectionId,
+		   String host, 
 		   int port, 
 		   boolean isOutgoing, 
 		   String statusMessage, 
-		   int numMessagesReceived, 
-		   int numMessagesSent) {
+		   int messagesReceived, 
+		   int messagesSent,
+		   int messagesDropped) {
+	this.connectionId = connectionId;
 	this.host = host;
 	this.port = port;
 	this.isOutgoing = isOutgoing;
 	this.statusMessage = statusMessage;	
-	this.numMessagesReceived = numMessagesReceived;
-	this.numMessagesSent = numMessagesSent;
+	this.messagesReceived = messagesReceived;
+	this.messagesSent = messagesSent;
+	this.messagesDropped = messagesDropped;
+    }
+
+    public int getConnectionId() {
+	return connectionId;
     }
 
     public String getHost() {
@@ -45,15 +55,35 @@ public class ConnectionInfo {
 	return this.statusMessage;
     }
 
-    public int getNumMessagesSent() {
-	return this.numMessagesSent;
+    public int getMessagesSent() {
+	return this.messagesSent;
     }
 
-    public int getNumMessagesReceived() {
-	return this.numMessagesReceived;
+    public int getMessagesReceived() {
+	return this.messagesReceived;
     }
 
-    void setStatusMessage(String statusMessage) {
+    public int getMessagesDropped() {
+	return this.messagesDropped;
+    }
+
+    void setStatus(String statusMessage, 
+		   int messagesSent, 
+		   int messagesReceived, 
+		   int messagesDropped) {
 	this.statusMessage = statusMessage;
+	this.messagesSent = messagesSent;
+	this.messagesReceived = messagesReceived;
+	this.messagesDropped = messagesDropped;	
+    }
+
+    public String toString() {
+	return "[ConnectionInfo: id=" + connectionId
+	    + ", host=" + host + ":" + port
+	    + (isOutgoing ? " (outgoing)" : " (incoming)")
+	    + ", sent=" + messagesSent
+	    + ", recv=" + messagesReceived
+	    + ", dropped=" + messagesDropped
+	    + ", status=" + statusMessage + "]";
     }
 }

@@ -14,8 +14,10 @@ import xella.net.*;
 
 public class Router {
 
-    private int ttlDropLimit;
-    private int messageHistorySize;
+    private static final int MESSAGE_HISTORY_SIZE = 10000;
+    private static final int TTL_DROP_LIMIT = 10;
+
+    /* The group of connections that messages are routed to */
     private ConnectionGroup connectionGroup;
 
     /** Cache to remember ping routes */
@@ -32,17 +34,13 @@ public class Router {
 
     /**
      * Create a new router
-     * @param ttlDropLimit messages with ttl higher than this will be dropped
-     * @param messageHistorySize how many messsages, per type, to remember routes for
      *
      */
-    public Router(int ttlDropLimit, int messageHistorySize, ConnectionGroup connectionGroup) {
-	this.ttlDropLimit = ttlDropLimit;
-	this.messageHistorySize = messageHistorySize;
+    public Router(ConnectionGroup connectionGroup) {
 	this.connectionGroup = connectionGroup;
-	this.pingCache = new MessageCache(messageHistorySize);
-	this.queryCache = new MessageCache(messageHistorySize);
-	this.queryResponseCache = new MessageCache(messageHistorySize);
+	this.pingCache = new MessageCache(MESSAGE_HISTORY_SIZE);
+	this.queryCache = new MessageCache(MESSAGE_HISTORY_SIZE);
+	this.queryResponseCache = new MessageCache(MESSAGE_HISTORY_SIZE);
     }
     
     void registerReceivedMessage(Message message) {
@@ -61,7 +59,16 @@ public class Router {
      *
      * The message is aged by this method.
      */
-    public void route(Message message) {
+    
+    void routeReceivedMessage(Message message) {
+	route(message);
+    }
+    
+    void routeNewMessage(Message message) {
+	route(message);
+    }
+
+    private void route(Message message) {
 
 	/* Fix hops and ttl */
 	message.age();
@@ -74,7 +81,7 @@ public class Router {
 	}
 
 	/* check policy for unwanted messages */
-	if (message.getTTL() > ttlDropLimit) {
+	if (message.getTTL() > TTL_DROP_LIMIT) {
 	    System.out.println("dropping message (ttl too high): " + message);
 	    message.drop();
 	    return;
