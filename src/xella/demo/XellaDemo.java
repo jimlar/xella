@@ -8,14 +8,17 @@ package xella.demo;
 
 import java.io.IOException;
 import java.util.*;
+
 import xella.net.*;
 
 /**
  *
  * @author  jimmy
  */
-public class XellaDemo extends javax.swing.JFrame implements MessageListener, ConnectionListener {
-
+public class XellaDemo 
+    extends javax.swing.JFrame 
+    implements MessageListener, ConnectionListener 
+{
     private GnutellaEngine engine;
     private QueryMessage activeQuery;
 
@@ -35,17 +38,18 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 
     /** Creates new form XellaDemo */
     public XellaDemo() throws IOException {
+        this.engine = new GnutellaEngine(10, 15, 6346);
+
         initComponents();
 	updateStatistics();
-        this.engine = new GnutellaEngine(5, 10, 6346);
 	engine.addMessageListener(this);
 	engine.addConnectionListener(this);
 	engine.start();
 
 	engine.addHost("127.0.0.1", 2944);
- 	//engine.addHost("gnutellahosts.com", 6346);
- 	//engine.addHost("router.limewire.com", 6346);
-	//engine.addHost("gnutella.hostscache.com", 6346);
+	engine.addHost("gnutellahosts.com", 6346);
+ 	engine.addHost("router.limewire.com", 6346);
+	engine.addHost("gnutella.hostscache.com", 6346);
     }
 
     /** This method is called from within the constructor to
@@ -214,29 +218,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
         
         jTabbedPane2.addTab("Statistics", jPanel4);
         
-        connectionsTable.setModel(new javax.swing.table.DefaultTableModel(
-        new Object [][] {
-            
-        },
-        new String [] {
-            "Host", "Sent", "Received", "Dropped", "Status"
-        }
-        ) {
-            Class[] types = new Class [] {
-                java.lang.String.class, java.lang.Integer.class, java.lang.Integer.class, java.lang.Integer.class, java.lang.String.class
-            };
-            boolean[] canEdit = new boolean [] {
-                false, false, false, false, false
-            };
-            
-            public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
-            }
-            
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
-        });
+        connectionsTable.setModel(new ConnectionsTableModel(this.engine));
         jScrollPane1.setViewportView(connectionsTable);
         
         jTabbedPane2.addTab("Connections", jScrollPane1);

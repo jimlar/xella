@@ -485,6 +485,6 @@ class GnutellaConnection {
     }
 
     private void log(String message) {
-	System.out.println("[" + connectionNumber + "]: " + message);
+	//System.out.println("[" + connectionNumber + "]: " + message);
     }
 }

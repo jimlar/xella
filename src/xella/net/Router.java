@@ -76,13 +76,13 @@ public class Router {
 	/* drop message if it is too old */
 	if (message.getTTL() <= 0) {
 	    //System.out.println("dropping message (ttl <= 0): " + message);
-	    message.drop();
+	    //message.drop();
 	    return;
 	}
 
 	/* check policy for unwanted messages */
 	if (message.getTTL() > TTL_DROP_LIMIT) {
-	    System.out.println("dropping message (ttl too high): " + message);
+	    //System.out.println("dropping message (ttl too high): " + message);
 	    message.drop();
 	    return;
 	}
