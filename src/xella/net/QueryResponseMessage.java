@@ -1,6 +1,7 @@
 
 package xella.net;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -16,14 +17,15 @@ public class QueryResponseMessage extends Message {
     private int hostSpeed;
     private List queryHits;
 
-    QueryResponseMessage(MessageHeader header, 
+    QueryResponseMessage(GnutellaConnection receivedFrom,
+			 MessageHeader header, 
 			 byte serventId[],
 			 String hostIP, 
 			 int port, 
 			 int hostSpeed, 
 			 List queryHits) 
     {
-	super(header);
+	super(receivedFrom, header);
 	this.serventId = serventId;
 	this.hostIP = hostIP;
 	this.port = port;
@@ -31,6 +33,12 @@ public class QueryResponseMessage extends Message {
 	this.queryHits = queryHits;
     }
     
+    
+    public void send(GnutellaOutputStream out) throws IOException {
+	getHeader().send(out);
+	throw new IOException("not fully implemented yet!");
+    }
+
     public String toString() {
 	String toReturn = "QueryResponseMessage: host=" + hostIP
 	    + ", port=" + port

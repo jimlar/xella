@@ -24,7 +24,7 @@ class MessageDecoder {
 	switch (messageHeader.getMessageType()) {
 
 	case GnutellaConstants.PAYLOAD_PING:
-	    return new PingMessage(messageHeader);
+	    return new PingMessage(null, messageHeader);
 
  	case GnutellaConstants.PAYLOAD_PONG:
  	    return decodePongMessage(messageHeader);
@@ -43,7 +43,7 @@ class MessageDecoder {
 	    for (int i = 0; i < messageHeader.getMessageBodySize(); i++) {
 		in.read();
 	    }
-	    return new Message(messageHeader);
+	    return new UnsupportedMessage(null, messageHeader);
 	}
     }
 
@@ -72,7 +72,7 @@ class MessageDecoder {
 	String host = readIPNumber();
 	int numShared = read32Bit();
 	int kilobytesShared = read32Bit();
-	return new PongMessage(messageHeader, host, port, numShared, kilobytesShared);
+	return new PongMessage(null, messageHeader, host, port, numShared, kilobytesShared);
     }
 
     private PushMessage decodePushMessage(MessageHeader messageHeader)
@@ -83,7 +83,7 @@ class MessageDecoder {
 	String host = readIPNumber();
 	int port = read16Bit();
 
-	return new PushMessage(messageHeader, serventId, host, port, fileIndex);
+	return new PushMessage(null, messageHeader, serventId, host, port, fileIndex);
     }
 
     private QueryMessage decodeQueryMessage(MessageHeader messageHeader)
@@ -97,7 +97,7 @@ class MessageDecoder {
 	/* discard the null terminator */	
 	read8Bit();
 	
-	return new QueryMessage(messageHeader, searchString, minSpeed);
+	return new QueryMessage(null, messageHeader, searchString, minSpeed);
     }
 
     private QueryResponseMessage decodeQueryResponseMessage(MessageHeader messageHeader)
@@ -128,7 +128,8 @@ class MessageDecoder {
 
 	byte serventId[] = readServentIdentifier();
 
-	return new QueryResponseMessage(messageHeader, 
+	return new QueryResponseMessage(null,
+					messageHeader, 
 					serventId, 
 					hostIP, 
 					port, 

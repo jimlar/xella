@@ -7,10 +7,9 @@ import java.net.*;
 public class GnutellaConnection {
 
     private Socket socket;
-    private OutputStream out;
+    private GnutellaOutputStream out;
     private InputStream in;
 
-    private MessageGenerator messageGenerator;
     private MessageDecoder messageDecoder;
 
     public GnutellaConnection(String host, int port) 
@@ -30,7 +29,7 @@ public class GnutellaConnection {
 	throws IOException 
     {
 	this.socket = socket;
-	this.out = socket.getOutputStream();
+	this.out = new GnutellaOutputStream(socket.getOutputStream());
 	this.in = socket.getInputStream();
 	
 	if (isClient) {
@@ -39,37 +38,17 @@ public class GnutellaConnection {
 	    doServerHandshake();
 	}
 
-	this.messageGenerator = new MessageGenerator(this.out);
 	this.messageDecoder = new MessageDecoder(this.in);
     }
 
-    public void sendPing() throws IOException {
-	messageGenerator.sendPing();
+    public void send(Message message) throws IOException {
+	message.send(out);
     }
 
-    public void sendPong(PingMessage replyTo,
-			 String hostIP, 
-			 int port, 
-			 int numShared, 
-			 int kilobytesShared) 
-	throws IOException 
-    {
-	messageGenerator.sendPong(replyTo,
-				  hostIP, 
-				  port, 
-				  numShared, 
-				  kilobytesShared);
-    }
-    
-    public void sendQuery(int minSpeed, String searchString)
-	throws IOException 
-    {
-	messageGenerator.sendQuery(minSpeed, searchString);	
-    }
-    
-    public Message getNextMessage() throws IOException {
+    public Message receiveNextMessage() throws IOException {
 	return messageDecoder.decodeNextMessage();
     }
+
 
     private void doClientHandshake() 
 	throws IOException

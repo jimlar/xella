@@ -1,6 +1,7 @@
 
 package xella.net;
 
+import java.io.*;
 
 public class MessageHeader {
 
@@ -37,6 +38,14 @@ public class MessageHeader {
 
     public int getHops() {
 	return hops;
+    }
+
+    public void send(GnutellaOutputStream out) throws IOException {
+	out.write(descriptorId);
+	out.write8Bit(payloadDescriptor);
+	out.write8Bit(ttl);
+	out.write8Bit(hops);
+	out.write32Bit(payloadLength);
     }
 
     public String toString() {

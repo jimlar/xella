@@ -1,12 +1,20 @@
 
 package xella.net;
 
+import java.io.*;
 
-public class Message {
+public abstract class Message {
 
+    private GnutellaConnection receivedFrom;
     private MessageHeader header;
 
-    Message(MessageHeader header) {
+    /**
+     * Use null for receivedFrom for messages that has no originator
+     *( i.e. not received from a connection, created new)
+     */
+    Message(GnutellaConnection receivedFrom,
+	    MessageHeader      header) {
+	this.receivedFrom = receivedFrom;
 	this.header = header;
     }
 
@@ -17,6 +25,12 @@ public class Message {
     public int getHops() {
 	return header.getHops();
     }
+
+    public boolean receivedFrom(GnutellaConnection connection) {
+	return connection.equals(receivedFrom);
+    }
+
+    public abstract void send(GnutellaOutputStream out) throws IOException;
 
     protected MessageHeader getHeader() {
 	return this.header;
