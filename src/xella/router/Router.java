@@ -40,25 +40,59 @@ public class Router {
 	connections.remove(connection);
     }
 
+    public void route(Message message) throws IOException {
+
+	/* Fix hops and ttl */
+	message.age();
+	
+	/* drop message if it is too old */
+	if (message.getTTL() <= 0) {
+	    message.drop();
+	    return;
+	}
+
+	/* check policy for unwanted messages */
+	if (!policyChecksOut(message)) {
+	    message.drop();
+	    return;
+	}
+
+	if (message instanceof PingMessage) {
+	    route((PingMessage) message);
+	} else if (message instanceof PongMessage) {
+	    route((PongMessage) message);
+	} else if (message instanceof PushMessage) {
+	    route((PushMessage) message);
+	} else if (message instanceof QueryMessage) {
+	    route((QueryMessage) message);
+	} else if (message instanceof QueryResponseMessage) {
+	    route((QueryResponseMessage) message);
+	}
+    }
 
     public void route(PingMessage message) throws IOException {
-	
+	broadcast(message);
     }
     
     public void route(PongMessage message) throws IOException {
-	
-    }
-
-    public void route(QueryMessage message) throws IOException {
-	
-    }
-
-    public void route(QueryResponseMessage message) throws IOException {
-	
+	System.out.println("routing pong message");	
     }
 
     public void route(PushMessage message) throws IOException {
-	
+	System.out.println("routing push message");	
+    }
+
+    public void route(QueryMessage message) throws IOException {
+	System.out.println("routing query message");	
+    }
+
+    public void route(QueryResponseMessage message) throws IOException {
+	System.out.println("routing query response message");	
+    }
+
+
+    private boolean policyChecksOut(Message message) {
+	return (message.getTTL() <= policy.getMaxTTL());
     }
 
     /**
@@ -67,6 +101,7 @@ public class Router {
      */
     private void broadcast(Message message) throws IOException {
 	
+	System.out.println("Broadcasting: " + message);
 	Iterator iter = connections.iterator();
 	while (iter.hasNext()) {
 	    GnutellaConnection connection = (GnutellaConnection) iter.next();

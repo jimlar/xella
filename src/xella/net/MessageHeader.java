@@ -40,6 +40,18 @@ public class MessageHeader {
 	return hops;
     }
 
+    public int getTTL() {
+	return ttl;
+    }
+
+    /**
+     * Increase hops and decrease TTL of message
+     */
+    public void age() {
+	hops++;
+	ttl--;
+    }
+    
     public void send(GnutellaOutputStream out) throws IOException {
 	out.write(descriptorId);
 	out.write8Bit(payloadDescriptor);

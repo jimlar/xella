@@ -5,6 +5,7 @@ import java.io.*;
 import java.net.*;
 
 import xella.net.*;
+import xella.router.*;
 
 /**
  * The main class of xella
@@ -16,12 +17,14 @@ public class Xella {
     public static void main(String args[]) throws Exception {
 
 	ServerSocket serv = new ServerSocket(6346);
+	Router router = new Router();
+	    
 	Socket socket = serv.accept();
 	
  	//Socket socket = new Socket("192.168.1.1", 2662);
  	//Socket socket = new Socket("gnutellahosts.com", 6346);
 
-	GnutellaConnection con = new GnutellaConnection(socket, false);
+	GnutellaConnection con = new GnutellaConnection(router, socket, false);
 	Mongo mongo = new Mongo(con);
 
 	while (true) {
@@ -44,10 +47,9 @@ public class Xella {
 	    try {
 		while (true) {
 		    Message m = con.receiveNextMessage();
-		    System.out.println(m.toString());	    
+		    System.out.println("Got: " + m);	    
 
 		    if (m instanceof PingMessage) {
-			System.out.println("Got ping, sending pong(s)...");
 			PongMessage message 
 			    = MessageFactory.getInstance().createPongMessage((PingMessage) m, 
 									     "192.168.1.31", 
@@ -56,6 +58,8 @@ public class Xella {
 									     1234567890);
 			con.send(message);
 		    }
+
+		    con.getRouter().route(m);
 		}	
 	    } catch (Exception e) {
 		e.printStackTrace();

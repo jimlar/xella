@@ -26,11 +26,30 @@ public abstract class Message {
 	return header.getHops();
     }
 
+    public int getTTL() {
+	return header.getTTL();
+    }
+
     public boolean receivedFrom(GnutellaConnection connection) {
 	return connection.equals(receivedFrom);
     }
 
     public abstract void send(GnutellaOutputStream out) throws IOException;
+
+
+    /**
+     * Increase hops and decrease TTL of message
+     */
+    public void age() {
+	getHeader().age();
+    }
+    
+    /**
+     * Mark message as dropped
+     */
+    public void drop() {
+	System.out.println("Dropped message: " + this);
+    }
 
     protected MessageHeader getHeader() {
 	return this.header;
