@@ -7,6 +7,8 @@ import java.util.*;
 
 class GnutellaConnection {
 
+    private static final int SENDBUFFER_CLOSE_LEVEL = 200;
+
     private GnutellaEngine engine;
 
     private String host;
@@ -70,6 +72,12 @@ class GnutellaConnection {
      * Queue message for sending 
      */
     void send(Message message) {
+
+	if (sendBuffer.size() >= SENDBUFFER_CLOSE_LEVEL) {
+	    System.out.println("send buffer full, closing connection");
+	    disconnect(new IOException("send buffer overflow"));
+	    return;
+	}
 	sendBuffer.add(message);
 	synchronized (sendBuffer) {
 	    sendBuffer.notifyAll();
