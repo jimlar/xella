@@ -37,8 +37,12 @@ public class GnutellaConnection {
 	}
     }
 
-    public Packet getNextPacket() throws IOException {
-	return PacketDecoder.decodePacket(this.in);
+    public void sendPing() throws IOException {
+	MessageGenerator.sendPing(out);
+    }
+
+    public Message getNextMessage() throws IOException {
+	return MessageDecoder.decodeMessage(this.in);
     }
 
     private void doClientHandshake() 

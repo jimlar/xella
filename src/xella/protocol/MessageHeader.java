@@ -2,7 +2,7 @@
 package xella.protocol;
 
 
-public class Packet {
+public class MessageHeader {
 
     private byte descriptorId[];
     private int payloadDescriptor;
@@ -10,7 +10,12 @@ public class Packet {
     private int hops;
     private int payloadLength;
 
-    Packet(byte descriptorId[] , int payloadDescriptor, int ttl, int hops, int payloadLength) {
+    MessageHeader(byte descriptorId[] , 
+		  int payloadDescriptor, 
+		  int ttl, 
+		  int hops, 
+		  int payloadLength) {
+
 	this.descriptorId = descriptorId;
 	this.payloadDescriptor = payloadDescriptor;
 	this.ttl = ttl;
@@ -18,13 +23,17 @@ public class Packet {
 	this.payloadLength = payloadLength;
     }
 
-    public int getSize() {
+    public int getMessageBodySize() {
 	return payloadLength;
+    }
+
+    public int getMessageType() {
+	return payloadDescriptor;
     }
 
     public String toString() {
 
-	String toReturn = "Packet: id=[";
+	String toReturn = "MessageHeader: id=[";
 	
 	for (int i = 0; i < descriptorId.length; i++) {
 	    if (i == descriptorId.length - 1) {
