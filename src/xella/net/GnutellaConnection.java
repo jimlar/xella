@@ -156,6 +156,8 @@ class GnutellaConnection {
      */
     synchronized void pumpConnection() {
 	
+	log("start pump, state=" + connectionState);
+
 	try {
 	    doReadWrite();
 
@@ -227,6 +229,8 @@ class GnutellaConnection {
 		break;
 	    }
 	}
+
+	log("end pump!");
     }
 
     private void doReadWrite() throws IOException {
@@ -252,10 +256,13 @@ class GnutellaConnection {
 				     numMessagesDropped);	
 	    engine.connecting(connectionInfo);	    
 	    this.socketChannel = SocketChannel.open();
+	    this.socketChannel.configureBlocking(false);
 	    this.socketChannel.connect(new InetSocketAddress(host, port));
+	
+	} else {
+	    this.socketChannel.configureBlocking(false);
 	}
-
-	this.socketChannel.configureBlocking(false);
+	
 	this.socketChannel.socket().setSoTimeout(TIMEOUT_MS);
 	connectionState = STATE_CONNECTING;
     }
@@ -485,6 +492,6 @@ class GnutellaConnection {
     }
 
     private void log(String message) {
-	//System.out.println("[" + connectionNumber + "]: " + message);
+	System.out.println("[" + connectionNumber + "]: " + message);
     }
 }

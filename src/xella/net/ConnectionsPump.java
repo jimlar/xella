@@ -42,7 +42,7 @@ class ConnectionsPump extends Thread {
 	    /*
 	     * Try opening new connections if we are below the min limit of the group
 	     */
-	    while (connectionGroup.isSmallerThanMinSize()) {
+	    if (connectionGroup.isSmallerThanMinSize()) {
 		GnutellaConnection connection = getNewConnection();
 		
 		if (connection != null) {
@@ -66,19 +66,20 @@ class ConnectionsPump extends Thread {
 	     * Check for incoming connections
 	     */
 	    checkIncomingConnections();	    
-
+	    
 	    /*
 	     * Pump all connections that are ready for io
 	     */
-	    try {
-		Iterator iter = connectionGroup.getReadyConnections().iterator();
+	    //try {
+	    //	Iterator iter = connectionGroup.getReadyConnections().iterator();
+		Iterator iter = connectionGroup.iterator();
 		while (iter.hasNext()) {
 		    GnutellaConnection con = (GnutellaConnection) iter.next();
 		    con.pumpConnection();
 		}
-	    } catch (IOException e) {
-		System.out.println("cant fetch ready connections: " + e);
-	    }
+		//} catch (IOException e) {
+		//System.out.println("cant fetch ready connections: " + e);
+		//}
 	}
     }
     
