@@ -8,7 +8,7 @@ public class GnutellaConnection {
 
     private Socket socket;
     private GnutellaOutputStream out;
-    private InputStream in;
+    private GnutellaInputStream in;
 
     private MessageDecoder messageDecoder;
 
@@ -30,7 +30,7 @@ public class GnutellaConnection {
     {
 	this.socket = socket;
 	this.out = new GnutellaOutputStream(socket.getOutputStream());
-	this.in = socket.getInputStream();
+	this.in = new GnutellaInputStream(socket.getInputStream());
 	
 	if (isClient) {
 	    doClientHandshake();

@@ -11,9 +11,9 @@ import java.util.*;
 
 class MessageDecoder {
 
-    private InputStream in;
+    private GnutellaInputStream in;
 
-    public MessageDecoder(InputStream in) {
+    public MessageDecoder(GnutellaInputStream in) {
 	this.in = in;
     }
 
@@ -57,10 +57,10 @@ class MessageDecoder {
  				  + bytesRead + " bytes)");
  	}
 	
-	int payloadDescriptor = read8Bit();
-	int ttl = read8Bit();
-	int hops = read8Bit();
-	int payloadLength = read32Bit();
+	int payloadDescriptor = in.read8Bit();
+	int ttl = in.read8Bit();
+	int hops = in.read8Bit();
+	int payloadLength = in.read32Bit();
 	    
 	return new MessageHeader(descriptorId, payloadDescriptor, ttl, hops, payloadLength);
     }
@@ -68,20 +68,20 @@ class MessageDecoder {
     private PongMessage decodePongMessage(MessageHeader messageHeader)
 	throws IOException
     {
-	int port = read16Bit();
-	String host = readIPNumber();
-	int numShared = read32Bit();
-	int kilobytesShared = read32Bit();
+	int port = in.read16Bit();
+	String host = in.readIPNumber();
+	int numShared = in.read32Bit();
+	int kilobytesShared = in.read32Bit();
 	return new PongMessage(null, messageHeader, host, port, numShared, kilobytesShared);
     }
 
     private PushMessage decodePushMessage(MessageHeader messageHeader)
 	throws IOException
     {
-	byte serventId[] = readServentIdentifier();
-	int fileIndex = read32Bit();
-	String host = readIPNumber();
-	int port = read16Bit();
+	byte serventId[] = in.readServentIdentifier();
+	int fileIndex = in.read32Bit();
+	String host = in.readIPNumber();
+	int port = in.read16Bit();
 
 	return new PushMessage(null, messageHeader, serventId, host, port, fileIndex);
     }
@@ -89,13 +89,13 @@ class MessageDecoder {
     private QueryMessage decodeQueryMessage(MessageHeader messageHeader)
 	throws IOException
     {
-	int minSpeed = read16Bit();
+	int minSpeed = in.read16Bit();
 
 	int stringSize = messageHeader.getMessageBodySize() - 3;
-	String searchString = readAsciiString(stringSize);
+	String searchString = in.readAsciiString(stringSize);
 
 	/* discard the null terminator */	
-	read8Bit();
+	in.read8Bit();
 	
 	return new QueryMessage(null, messageHeader, searchString, minSpeed);
     }
@@ -103,10 +103,10 @@ class MessageDecoder {
     private QueryResponseMessage decodeQueryResponseMessage(MessageHeader messageHeader)
 	throws IOException
     {
-	int numberOfHits = read8Bit();
-	int port = read16Bit();
-	String hostIP = readIPNumber();
-	int hostSpeed = read32Bit();	
+	int numberOfHits = in.read8Bit();
+	int port = in.read16Bit();
+	String hostIP = in.readIPNumber();
+	int hostSpeed = in.read32Bit();	
 	List queryHits = new ArrayList();
 
 	/*
@@ -116,17 +116,17 @@ class MessageDecoder {
 
 	/* Read all hits */
 	for (int i = 0; i < numberOfHits; i++) {
-	    int fileIndex = read32Bit();
-	    int fileSize = read32Bit();
-	    String fileName = readAsciiString();
+	    int fileIndex = in.read32Bit();
+	    int fileSize = in.read32Bit();
+	    String fileName = in.readAsciiString();
 
 	    /* throw away extra null terminator */
-	    read8Bit();
+	    in.read8Bit();
 	    
 	    queryHits.add(new QueryHit(fileIndex, fileSize, fileName));
 	}
 
-	byte serventId[] = readServentIdentifier();
+	byte serventId[] = in.readServentIdentifier();
 
 	return new QueryResponseMessage(null,
 					messageHeader, 
@@ -135,107 +135,5 @@ class MessageDecoder {
 					port, 
 					hostSpeed, 
 					queryHits); 
-    }
-
-
-    private int read8Bit() 
-	throws IOException
-    {
-	int byteRead = in.read();
-	if (byteRead == -1) {
-	    throw new IOException("EOF before 8-bit value read");
-	}
-	
-	return byteRead;	
-    }
-
-    private int read16Bit() 
-	throws IOException 
-    {
-	int loByte = in.read();
-	int hiByte = in.read();
-	if (loByte == -1 || hiByte == -1) {
-	    throw new IOException("EOF before 16-bit value read");
-	}
-	return (hiByte & 0xff) << 8 | (loByte & 0xff); 
-    }
-
-    private int read32Bit() 
-	throws IOException 
-    {
-	byte buffer[] = new byte[4];
-	int bytesRead = in.read(buffer);
-	if (bytesRead != buffer.length) {
-	    throw new IOException("EOF before 32-bit int read (read " 
-				  + bytesRead + " expected " + buffer.length + ")");
-	}
-	
-	return (buffer[0] & 0xff) 
-	    | (buffer[1] & 0xff) << 8 
-	    | (buffer[2] & 0xff) << 16 
-	    | (buffer[3] & 0xff) << 24;	
-    }
-
-    private byte[] readServentIdentifier() 
-	throws IOException
-    {
-	byte serventId[] = new byte[16];
-	if (in.read(serventId) != 16) {
-	    throw new IOException("EOF while reading servent id");
-	}
-	
-	return serventId;
-    }
-
-    private String readIPNumber() 
-	throws IOException
-    {
-	byte buffer[] = new byte[4];
-	int bytesRead = in.read(buffer);
-	if (bytesRead != buffer.length) {
-	    throw new IOException("EOF before whole ipnumber read (read " 
-				  + bytesRead + " expected " + buffer.length + ")");
-	}
-	
-	return (buffer[0] < 0 ? buffer[0] + 256 : buffer[0]) 
-	    + "." + (buffer[1] < 0 ? buffer[1] + 256 : buffer[1]) 
-	    + "." + (buffer[2] < 0 ? buffer[2] + 256 : buffer[2]) 
-	    + "." + (buffer[3] < 0 ? buffer[3] + 256 : buffer[3]); 
-    }
-
-    /**
-     * Read fixed size ascii string 
-     */
-    private String readAsciiString(int size) throws IOException {
-	
-	byte stringBytes[] = new byte[size];
-	int bytesRead = in.read(stringBytes);
-	if (bytesRead != stringBytes.length) {
-	    throw new IOException("EOF before whole string read (read " 
-				  + bytesRead + " expected " + stringBytes.length + ")");
-	}
-
-	return new String(stringBytes, "ascii");
-    }
-
-    /**
-     * Read ascii string up until nul termnation
-     * (the null terminator is removed from the stream)
-     *
-     */
-    private String readAsciiString() throws IOException {
-
-	StringBuffer buffer = new StringBuffer(256);
-	int readChar = in.read();
-	while (readChar != 0) {
-	    if (readChar ==  -1) {
-		throw new IOException("EOF before whole string read (read " 
-				      + buffer.length() + " bytes)");
-	    }
-	    buffer.append((char) readChar);
-	    readChar = in.read();
-	}
-
-	return buffer.toString();
     }
 }
