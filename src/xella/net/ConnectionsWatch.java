@@ -41,14 +41,9 @@ class ConnectionsWatch extends Thread implements MessageListener {
 	while (!stopping) {
 
 	    if (connectionGroup.isSmallerThanMinSize()) {
-		try {
-		    GnutellaConnection connection = getNewConnection();
-		    if (connection != null) {
-			connectionGroup.addConnection(connection);
-		    }
-		} catch (IOException e) {
-		    System.out.println("Exception while opening new connection: " + e);
-		    e.printStackTrace();
+		GnutellaConnection connection = getNewConnection();
+		if (connection != null) {
+		    connectionGroup.addConnection(connection);
 		}
 	    }
 	    try {
@@ -64,16 +59,14 @@ class ConnectionsWatch extends Thread implements MessageListener {
     /**
      * Fetch a new connection from the list of catched hosts
      */
-    public GnutellaConnection getNewConnection() throws IOException {
+    public GnutellaConnection getNewConnection() {
 	
 	if (hosts.size() > 0) {
-	    System.out.println("opening new connection, using added host");
 	    URL url = (URL) hosts.remove(0);
 	    return new GnutellaConnection(engine, url.getHost(), url.getPort());
 	}
 
 	if (pongList.size() > 0) {
-	    System.out.println("opening new connection, using pong host");
 	    PongMessage message = (PongMessage) pongList.remove(0);
 	    return new GnutellaConnection(engine, message.getHost(), message.getPort());
 	}

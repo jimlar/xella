@@ -7,6 +7,7 @@ import java.util.*;
 
 class GnutellaConnection {
 
+    private static final int CONNECT_TIMEOUT = 1000 * 30;
     private static final int SENDBUFFER_CLOSE_LEVEL = 200;
 
     private GnutellaEngine engine;
@@ -85,7 +86,8 @@ class GnutellaConnection {
     private void connect() throws IOException {
 
 	if (this.socket == null) {
-	    this.socket = new Socket(host, port);
+	    this.socket = new Socket();
+	    this.socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT);
 	}
 	this.out = new GnutellaOutputStream(this.socket.getOutputStream());
 	this.in = new GnutellaInputStream(this.socket.getInputStream());
@@ -192,7 +194,6 @@ class GnutellaConnection {
 	    try {
 		connect();
 	    } catch (IOException e) {
-		System.out.println("Error connecting, closing connection");
 		disconnect(e);
 	    }
 
@@ -201,7 +202,6 @@ class GnutellaConnection {
 		    receiveNextMessage();
 		}
 	    } catch (IOException e) {
-		System.out.println("Error reading next message, closing connection");
 		disconnect(e);
 	    }
 	}
@@ -214,7 +214,6 @@ class GnutellaConnection {
 		    sendNextMessage();
 		}
 	    } catch (IOException e) {
-		System.out.println("Error sending, closing connection");
 		disconnect(e);
 	    }
 	}

@@ -14,6 +14,18 @@ public class QueryHit {
 	this.fileName = fileName;
     }
 
+    public int getFileIndex() {
+	return fileIndex;
+    }
+
+    public int getFileSize() {
+	return fileSize;
+    }
+
+    public String getFileName() {
+	return fileName;
+    }
+
     public String toString() {
 	return "QueryHit: index=" + fileIndex + ", size=" + fileSize + ", name=" + fileName;
     }

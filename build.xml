@@ -27,9 +27,9 @@
     </javac>
   </target>
 
-  <!-- start xella -->
+  <!-- start xella demo gui -->
   <target name="start" depends="xella">
-    <java classname="xella.Xella"
+    <java classname="xella.demo.XellaDemo"
           classpath="${classpath}"
           fork="true"
           dir=".build">

@@ -32,7 +32,33 @@ public class QueryResponseMessage extends Message {
 	this.hostSpeed = hostSpeed;
 	this.queryHits = queryHits;
     }
+
+    public String getHostIP() {
+	return hostIP;
+    }
     
+    public int getPort() {
+	return port;
+    }
+
+    public int getHostSpeed() {
+	return hostSpeed;
+    }
+
+    public List getQueryHits() {
+	return queryHits;
+    }
+
+    public boolean isResponseFor(QueryMessage message) {
+        byte ourDescriptor[] = getDescriptorId();
+        byte otherDescriptor[] = message.getDescriptorId();
+        for (int i = 0; i < ourDescriptor.length; i++) {
+            if (ourDescriptor[i] != otherDescriptor[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
     
     public void send(GnutellaOutputStream out) throws IOException {
 	getHeader().send(out);
