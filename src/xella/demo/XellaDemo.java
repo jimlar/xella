@@ -30,6 +30,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     private int numConnectFailed = 0;
     private int numHostsDisconnected = 0;
     private int numHostsIgnored = 0;
+    private int numKnownHosts = 0;
 
 
     /** Creates new form XellaDemo */
@@ -337,6 +338,7 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
 	hostsConnectFailedLabel.setText("Connect failed: " + numConnectFailed);
 	hostsConnectingLabel.setText("Connecting: " + numHostsConnecting);
 	hostsIgnoredLabel.setText("Ignored hosts: " + numHostsIgnored);
+	hostsKnownLabel.setText("Known hosts: " + numKnownHosts);
     }
 
     public synchronized void connecting(ConnectionInfo info) {
@@ -358,6 +360,11 @@ public class XellaDemo extends javax.swing.JFrame implements MessageListener, Co
     
     public synchronized void hostIgnored(ConnectionInfo info) {
 	numHostsIgnored++;
+	updateStatistics();
+    }
+    
+    public synchronized void hostDiscovered(ConnectionInfo info) {
+	numKnownHosts++;
 	updateStatistics();
     }
     

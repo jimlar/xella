@@ -133,6 +133,14 @@ public class GnutellaEngine {
 	}
     }
     
+    void hostDiscovered(ConnectionInfo info) {
+	Iterator iter = connectionListeners.iterator();
+	while (iter.hasNext()) {
+	    ConnectionListener listener = (ConnectionListener) iter.next();
+	    listener.hostDiscovered(info);
+	}
+    }
+    
     void disconnected(ConnectionInfo info) {
 	Iterator iter = connectionListeners.iterator();
 	while (iter.hasNext()) {

@@ -31,7 +31,9 @@ class ConnectionsWatch extends Thread implements MessageListener {
     
     public void addHost(String host, int port) {
 	try {
-	    hosts.add(new URL("http://" + host + ":" + port));
+	    synchronized (hosts) {
+		hosts.add(new URL("http://" + host + ":" + port));
+	    }
 	} catch (MalformedURLException e) {
 	    throw new RuntimeException("bad url?" + e);
 	}
@@ -55,15 +57,16 @@ class ConnectionsWatch extends Thread implements MessageListener {
 		}
 	    }
 
-	    try {
-		Iterator iter = connectionGroup.getReadyConnections().iterator();
+	    //try {
+		//Iterator iter = connectionGroup.getReadyConnections().iterator();
+		Iterator iter = connectionGroup.iterator();
 		while (iter.hasNext()) {
 		    GnutellaConnection con = (GnutellaConnection) iter.next();
 		    con.pumpConnection();
 		}
-	    } catch (IOException e) {
-		System.out.println("cant fetch ready connections: " + e);
-	    }
+		//} catch (IOException e) {
+		//System.out.println("cant fetch ready connections: " + e);
+		//}
 	}
     }
     
@@ -76,14 +79,18 @@ class ConnectionsWatch extends Thread implements MessageListener {
      */
     public GnutellaConnection getNewConnection() {
 	
-	if (hosts.size() > 0) {
-	    URL url = (URL) hosts.remove(0);
-	    return new GnutellaConnection(engine, url.getHost(), url.getPort());
+	synchronized (hosts) {
+	    if (hosts.size() > 0) {
+		URL url = (URL) hosts.remove(0);
+		return new GnutellaConnection(engine, url.getHost(), url.getPort());
+	    }
 	}
 
-	if (pongList.size() > 0) {
-	    PongMessage message = (PongMessage) pongList.remove(0);
-	    return new GnutellaConnection(engine, message.getHost(), message.getPort());
+	synchronized (pongList) {
+	    if (pongList.size() > 0) {
+		PongMessage message = (PongMessage) pongList.remove(0);
+		return new GnutellaConnection(engine, message.getHost(), message.getPort());
+	    }
 	}
 
 	return null;
@@ -91,12 +98,15 @@ class ConnectionsWatch extends Thread implements MessageListener {
     
     public void receivedPong(PongMessage message) {
 	/* catch the host */
-	if (pongList.size() < 200) {
-	    String host = message.getHost();
-	    if (host.startsWith("192.168") || host.startsWith("10.")) {
-		this.engine.hostIgnored(new ConnectionInfo(host, message.getPort(), true, "Host ignored", 0, 0));
-	    } else {
-		pongList.add(message);
+	synchronized (pongList) {
+	    if (pongList.size() < 200) {
+		String host = message.getHost();
+		if (host.startsWith("192.168") || host.startsWith("10.")) {
+		    this.engine.hostIgnored(new ConnectionInfo(host, message.getPort(), true, "Host ignored", 0, 0));
+		} else {
+		    pongList.add(message);
+		    this.engine.hostDiscovered(new ConnectionInfo(host, message.getPort(), true, "Host found", 0, 0));
+		}
 	    }
 	}
     }
