@@ -27,7 +27,6 @@ public class Xella implements MessageListener {
 
     public void receivedPing(PingMessage message) {
 
-	System.out.println("Got: " + message);
 	try {
 	    /* Pong the pings */
 	    PongMessage pongMessage 
@@ -43,7 +42,7 @@ public class Xella implements MessageListener {
     }
 
     public void receivedPong(PongMessage message) {
-	System.out.println("Got: " + message);
+	//System.out.println("Got: " + message);
     }
     public void receivedPush(PushMessage message) {
 	System.out.println("Got: " + message);

@@ -16,7 +16,7 @@ public class Router {
 
     private int ttlDropLimit;
     private int messageHistorySize;
-    private Set connections;
+    private ConnectionGroup connectionGroup;
 
     /** Cache to remember ping routes */
     private MessageCache pingCache;
@@ -33,23 +33,15 @@ public class Router {
      * @param messageHistorySize how many messsages, per type, to remember routes for
      *
      */
-    public Router(int ttlDropLimit, int messageHistorySize) {
+    public Router(int ttlDropLimit, int messageHistorySize, ConnectionGroup connectionGroup) {
 	this.ttlDropLimit = ttlDropLimit;
 	this.messageHistorySize = messageHistorySize;
-	this.connections = Collections.synchronizedSet(new HashSet());
+	this.connectionGroup = connectionGroup;
 	this.pingCache = new MessageCache(messageHistorySize);
 	this.queryCache = new MessageCache(messageHistorySize);
 	this.queryResponseCache = new MessageCache(messageHistorySize);
     }
     
-    synchronized void addConnection(GnutellaConnection connection) {
-	connections.add(connection);
-    }    
-
-    synchronized void removeConnection(GnutellaConnection connection) {
-	connections.remove(connection);
-    }
-
     void registerReceivedMessage(Message message) {
 	if (message instanceof PingMessage) {
 	    pingCache.add(message);	    
@@ -66,14 +58,14 @@ public class Router {
      *
      * The message is aged by this method.
      */
-    public void route(Message message) throws IOException {
+    public void route(Message message) {
 
 	/* Fix hops and ttl */
 	message.age();
 	
 	/* drop message if it is too old */
 	if (message.getTTL() <= 0) {
-	    System.out.println("dropping message (ttl <= 0): " + message);
+	    //System.out.println("dropping message (ttl <= 0): " + message);
 	    message.drop();
 	    return;
 	}
@@ -101,7 +93,7 @@ public class Router {
     /**
      * Ping is broadcasted
      */
-    private void routePing(PingMessage message) throws IOException {
+    private void routePing(PingMessage message) {
 	pingCache.add(message);
 	broadcast(message);
     }
@@ -109,21 +101,21 @@ public class Router {
     /**
      * Pong is routed back the same way the ping came
      */
-    private void routePong(PongMessage message) throws IOException {
+    private void routePong(PongMessage message) {
 	routeBack(message, pingCache);
     }
 
     /**
      * Pushes are routed back the same way the query response message came
      */
-    private void routePush(PushMessage message) throws IOException {
+    private void routePush(PushMessage message) {
 	routeBack(message, queryResponseCache);
     }
 
     /**
      * Queries are broadcasted
      */
-    private void routeQuery(QueryMessage message) throws IOException {
+    private void routeQuery(QueryMessage message) {
 	queryCache.add(message);
 	broadcast(message);
     }
@@ -131,7 +123,7 @@ public class Router {
     /**
      * Query responses are routed back the same way the query message came
      */
-    private void routeQueryResponse(QueryResponseMessage message) throws IOException {
+    private void routeQueryResponse(QueryResponseMessage message) {
 	queryResponseCache.add(message);
 	routeBack(message, queryCache);
     }
@@ -140,14 +132,17 @@ public class Router {
      * Send message to all connections except the connection that 
      * sent this message (or to all if it was a new message)
      */
-    private void broadcast(Message message) throws IOException {
+    private void broadcast(Message message) {
 	
-	System.out.println("Broadcasting: " + message);
-	Iterator iter = connections.iterator();
+	Iterator iter = connectionGroup.iterator();
 	while (iter.hasNext()) {
 	    GnutellaConnection connection = (GnutellaConnection) iter.next();
 	    if (!message.receivedFrom(connection)) {
-		connection.send(message);
+		try {
+		    connection.send(message);
+		} catch (Exception e) {
+		    connection.disconnect(e);
+		}
 	    }
 	}
     }
@@ -161,10 +156,8 @@ public class Router {
      * @param message the message to route
      * @param cache the messagecache to use when trying to find the path
      */
-    private void routeBack(Message message, MessageCache cache) throws IOException {
+    private void routeBack(Message message, MessageCache cache) {
 	
-	System.out.println("routingBack: " + message);
-
 	Message parentMessage = cache.getByDescriptorId(message.getDescriptorId());
 	if (parentMessage == null) {
 	    message.drop();
@@ -172,12 +165,16 @@ public class Router {
 	    return;
 	} 
 
-	Iterator iter = connections.iterator();
+	Iterator iter = connectionGroup.iterator();
 	while (iter.hasNext()) {
 	    GnutellaConnection connection = (GnutellaConnection) iter.next();
 	    if (parentMessage.receivedFrom(connection)) {
 		/* successful route, send message */
-		connection.send(message);
+		try {
+		    connection.send(message);
+		} catch (Exception e) {
+		    connection.disconnect(e);
+		}
 		return;
 	    }
 	}

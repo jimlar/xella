@@ -12,7 +12,7 @@ import java.util.*;
 
 public class GnutellaEngine {
 
-    private GnutellaConnection connections[];
+    private ConnectionGroup connectionGroup;
     private Router router;
     private Collection messageListeners;
     private ConnectionsWatch connectionsWatch;
@@ -23,15 +23,15 @@ public class GnutellaEngine {
      * @param port the port for incoming connections
      */
     public GnutellaEngine(int numberOfConnections, int port) {
-	this.connections = new GnutellaConnection[numberOfConnections];
+	this.connectionGroup = new ConnectionGroup(numberOfConnections);
 	this.port = port;
-	this.router = new Router(10, 1000);
+	this.router = new Router(10, 1000, this.connectionGroup);
 	this.messageListeners = new ArrayList();
     }
 
     public void start() {
 	if (connectionsWatch == null) {
-	    connectionsWatch = new ConnectionsWatch(this, connections);
+	    connectionsWatch = new ConnectionsWatch(this, connectionGroup);
 	    addMessageListener(connectionsWatch);
 	}
     }
@@ -76,9 +76,11 @@ public class GnutellaEngine {
 		listener.receivedQueryResponse((QueryResponseMessage) message);
 	    }
 	}
+
+	router.route(message);
     }
 
-    Router getRouter() {
-	return router;
+    ConnectionGroup getConnectionGroup() {
+	return connectionGroup;
     }
 }

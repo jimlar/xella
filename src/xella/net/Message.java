@@ -31,7 +31,11 @@ public abstract class Message {
     }
 
     public boolean receivedFrom(GnutellaConnection connection) {
-	return connection.equals(receivedFrom);
+	if (receivedFrom == null) {
+	    return connection == null;
+	} else {
+	    return receivedFrom.equals(connection);
+	}
     }
 
     public abstract void send(GnutellaOutputStream out) throws IOException;

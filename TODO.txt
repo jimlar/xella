@@ -2,8 +2,6 @@
 
 Things to do:
 -------------
-
-- Output buffers for messages
-- Connection group class needs to be introduced
 - Start using the async-i/o
-
+- Implement download/upload/push
+- Implement server socket handling

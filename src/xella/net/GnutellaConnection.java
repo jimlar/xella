@@ -3,6 +3,7 @@ package xella.net;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
 
 class GnutellaConnection {
 
@@ -21,13 +22,15 @@ class GnutellaConnection {
     private Exception disconnectReason;
     private boolean isClosed;
 
+    private List sendBuffer;
+    private MessageSender messageSender;
+
     /**
      * Connect as a client
      */
     GnutellaConnection(GnutellaEngine engine, String host, int port) 
 	throws IOException
     {
-	//Move socket creation
 	this(engine, host, port, null, true);
     }
 
@@ -58,12 +61,19 @@ class GnutellaConnection {
 	this.port = port;
 	this.socket = socket;
 	this.isClient = isClient;
+	this.sendBuffer = Collections.synchronizedList(new ArrayList());
 	reader = new MessageReader();
 	reader.start();
     }
 
-    void send(Message message) throws IOException {
-	message.send(out);
+    /**
+     * Queue message for sending 
+     */
+    void send(Message message) {
+	sendBuffer.add(message);
+	synchronized (sendBuffer) {
+	    sendBuffer.notifyAll();
+	}
     }
 
     boolean isClosed() {
@@ -85,14 +95,15 @@ class GnutellaConnection {
 	}
 
 	this.messageDecoder = new MessageDecoder(this, this.in);
-	engine.getRouter().addConnection(this);
 
 	/* Always start out with a ping */
 	send(MessageFactory.getInstance().createPingMessage());
 	this.isClosed = false;
+	this.messageSender = new MessageSender();
+	this.messageSender.start();
     }
 
-    private void disconnect() {
+    void disconnect() {
 	disconnect(null);
     }
 
@@ -100,13 +111,13 @@ class GnutellaConnection {
      * close connection with a message
      * (this method ignores exceptions while trying to close)
      */
-    private void disconnect(Exception disconnectReason) {
+    void disconnect(Exception disconnectReason) {
 	if (!isClosed) {
 	    this.disconnectReason = disconnectReason;
 	    try {
 		this.socket.close();
 	    } catch (Exception e) {}
-	    engine.getRouter().removeConnection(this);
+	    engine.getConnectionGroup().removeConnection(this);
 	    this.isClosed = true;
 	}
     }
@@ -114,6 +125,18 @@ class GnutellaConnection {
     private void receiveNextMessage() throws IOException {
 	Message message = messageDecoder.decodeNextMessage();
 	engine.registerReceivedMessage(message);
+    }
+
+    private void sendNextMessage() throws IOException {
+	if (sendBuffer.size() > 0) {
+	    ((Message) sendBuffer.remove(0)).send(this.out);
+	} else {
+	    try {
+		synchronized(sendBuffer) {
+		    sendBuffer.wait();
+		}
+	    } catch (InterruptedException e) {}
+	}
     }
 
     private void doClientHandshake() 
@@ -177,6 +200,19 @@ class GnutellaConnection {
 		}
 	    } catch (IOException e) {
 		System.out.println("Error reading next message, closing connection");
+		disconnect(e);
+	    }
+	}
+    }
+
+    private class MessageSender extends Thread {	
+	public void run() {
+	    try {
+		while (!isClosed()) {
+		    sendNextMessage();
+		}
+	    } catch (IOException e) {
+		System.out.println("Error sending, closing connection");
 		disconnect(e);
 	    }
 	}

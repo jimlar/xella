@@ -10,13 +10,13 @@ class ConnectionsWatch extends Thread implements MessageListener {
     private GnutellaEngine engine;
     private List hosts;
     private List pongList;
-    private GnutellaConnection connections[];
+    private ConnectionGroup connectionGroup;
     private boolean stopping;
     
     public ConnectionsWatch(GnutellaEngine engine,
-			    GnutellaConnection connections[]) {
+			    ConnectionGroup connectionGroup) {
 	this.engine = engine;
-	this.connections = connections;
+	this.connectionGroup = connectionGroup;
 	this.stopping = false;
 	this.pongList = new ArrayList();
 	this.hosts = new ArrayList();
@@ -33,14 +33,16 @@ class ConnectionsWatch extends Thread implements MessageListener {
 
     public void run() {
 	while (!stopping) {
-	    for (int i = 0; i < connections.length; i++) {
-		if (connections[i] == null || connections[i].isClosed()) {
-		    try {
-			connections[i] = getNewConnection();
-		    } catch (IOException e) {
-			System.out.println("Exception while opening new connection: " + e);
-			e.printStackTrace();
+
+	    if (connectionGroup.isSmallerThanWanted()) {
+		try {
+		    GnutellaConnection connection = getNewConnection();
+		    if (connection != null) {
+			connectionGroup.addConnection(connection);
 		    }
+		} catch (IOException e) {
+		    System.out.println("Exception while opening new connection: " + e);
+		    e.printStackTrace();
 		}
 	    }
 	    try {
