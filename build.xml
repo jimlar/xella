@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+
+<project name="JetServer" default="jetserver" basedir=".">
+
+  <property name="build.compiler" value="jikes" />
+
+  <property name="classpath" value="src:
+				    .build/classes:
+                                    lib/xerces.jar" />
+
+  <!-- jetserver -->
+  <target name="jetserver" depends="compile">
+    <jar jarfile=".build/jetserver.jar" 
+         basedir=".build/classes"
+         manifest="src/MANIFEST.MF"/>
+  </target>
+
+  <!-- clean -->
+  <target name="clean">
+    <delete dir=".build" />
+  </target>
+
+  <!-- compile -->
+  <target name="compile">
+    <mkdir dir=".build/classes"/>
+
+    <javac destdir=".build/classes"
+	   classpath="${classpath}"
+	   includes="**/*.java">
+    
+      <src path="src"/>
+    </javac>
+
+    <copy todir=".build">
+      <fileset dir="." includes="lib/*.jar" />
+      <fileset dir="." includes="config/*.xml,config/mime.types" />
+      <fileset dir="." includes="html/*.html" />
+    </copy>
+
+  </target>
+
+  <!-- start server -->
+  <target name="start" depends="jetserver">
+    <java classname="jetserver.server.JetServer"
+          classpath="${classpath}"
+          fork="true"
+          dir=".build">
+    </java>
+  </target>
+
+  <!-- start benchmarking -->
+  <target name="javabenchmark" depends="compile">
+    <java classname="jetserver.benchmark.BenchMark"
+          classpath="${classpath}">
+      <arg value="http://localhost/index.html" />
+      <arg value="3" />
+    </java>
+  </target>
+
+  <target name="benchmark">
+    <echo message="http://localhost:8080/index.html" file=".build/benchmark_urls"/>
+    <exec executable="./tools/http_load">
+      <arg value="-parallel"/>
+      <arg value="30"/>
+      <arg value="-fetches"/>
+      <arg value="2000"/>
+      <arg file=".build/benchmark_urls"/>
+    </exec>
+  </target>
+
+</project>
